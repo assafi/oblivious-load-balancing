@@ -12,18 +12,40 @@ package config;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Stack;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * @author Assaf Israel
  *
  */
-public class Configuration {
+public class Configuration extends DefaultHandler {
 
+	private static Configuration instance = null; 
+	
+	private int numServers = 0;
+	private QueuePolicy policy = null;
+	private double load = 0.0;
+	private int memorySize = 0;
+	
+	Stack<String> xmlTags = new Stack<String>();
+
+	private static String tempVal = "";
+	
+	private Configuration() {}
+	
 	/**
 	 * @param xmlFilePath - The path for the XML configuration file 
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public Configuration(String xmlFilePath) throws IOException {
+	public void parseFile(String xmlFilePath) throws IOException {
 		File xmlFile = new File(xmlFilePath);
 		if (!xmlFile.exists()) {
 			throw new FileNotFoundException("File " + xmlFilePath + " not found");
@@ -32,6 +54,77 @@ public class Configuration {
 		if (!xmlFile.canRead()) {
 			throw new IOException("Can't read file " + xmlFile.getName());
 		}
+		
+		SAXParserFactory spf = SAXParserFactory.newInstance();
+		try {
+			SAXParser parser = spf.newSAXParser();
+			parser.parse(xmlFile, this);
+		} catch (SAXException se) {
+			throw new RuntimeException(se);
+		} catch (ParserConfigurationException pce) {
+			throw new RuntimeException(pce);
+		}		
 	}
 
+	public static Configuration getInstance() {
+		if (null != instance) {
+			return instance;
+		}
+		synchronized (Configuration.class) {
+			instance = new Configuration();
+		}
+		return instance;
+	}
+	
+	public void startElement(String uri, String localName, String qName, 
+			Attributes attributes) throws SAXException {
+		
+		if ("queue-policy".equals(qName)) {
+			String typeStr = attributes.getValue("policy");			
+			if (null == typeStr) {
+				throw new SAXException("Missing type attribute in queue-policy");
+			}
+			try {
+				policy = QueuePolicy.process(typeStr);
+			} catch (Exception e) {
+				throw new SAXException(e);
+			}
+		}
+		
+		tempVal = "";
+	}
+	
+	public void characters (char[] ch, int start, int length) 
+		throws SAXException {
+		
+		tempVal  += new String(ch,start,length).replaceAll("[\n\t ]*", "");
+	}
+	
+	public void endElement(String uri, String localName, String qName) throws SAXException {
+		if ("count".equals(qName)) {
+			numServers = Integer.valueOf(tempVal);
+		} else if ("queue-policy".equals(qName)) {
+			if (policy.equals(QueuePolicy.FINITE)) {
+				memorySize = Integer.valueOf(tempVal);
+			}
+		} else if ("load".equals(qName)) {
+			load = Double.valueOf(tempVal);
+		}
+	}
+
+	public int getNumServers() {
+		return numServers;
+	}
+
+	public QueuePolicy getPolicy() {
+		return policy;
+	}
+
+	public double getLoad() {
+		return load;
+	}
+	
+	public int getMemorySize() {
+		return memorySize;
+	}
 }

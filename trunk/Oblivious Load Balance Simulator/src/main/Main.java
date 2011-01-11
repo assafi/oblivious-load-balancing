@@ -27,13 +27,14 @@ public class Main {
 			System.exit(1);
 		}
 		
-		Configuration config;
+		Configuration config = Configuration.getInstance();
 		try {
-			config = new Configuration(args[1]);
+			config.parseFile(args[0]);
 		} catch (Exception e) {
 			usage(e.getMessage());
 			System.exit(1);
 		}
+		System.out.println("Done");
 	}
 
 	/**
