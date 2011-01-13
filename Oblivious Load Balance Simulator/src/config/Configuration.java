@@ -34,6 +34,7 @@ public class Configuration extends DefaultHandler {
 	private QueuePolicy policy = null;
 	private double load = 0.0;
 	private int memorySize = 0;
+	private double dFactor = 0.0;
 	
 	Stack<String> xmlTags = new Stack<String>();
 
@@ -80,14 +81,21 @@ public class Configuration extends DefaultHandler {
 			Attributes attributes) throws SAXException {
 		
 		if ("queue-policy".equals(qName)) {
-			String typeStr = attributes.getValue("policy");			
+			String typeStr = attributes.getValue("policy");
 			if (null == typeStr) {
-				throw new SAXException("Missing type attribute in queue-policy");
+				throw new SAXException("Missing policy attribute in queue-policy");
 			}
 			try {
 				policy = QueuePolicy.process(typeStr);
 			} catch (Exception e) {
 				throw new SAXException(e);
+			}
+			if (policy.equals(QueuePolicy.FINITE)) {
+				String dFactorStr = attributes.getValue("dFactor");
+				if (null == dFactorStr) {
+					throw new SAXException("Missing dFactor attribute in queue-policy");
+				}
+				dFactor = Double.valueOf(dFactorStr);
 			}
 		}
 		
@@ -126,5 +134,9 @@ public class Configuration extends DefaultHandler {
 	
 	public int getMemorySize() {
 		return memorySize;
+	}
+	
+	public double getDistributionFactor() {
+		return dFactor;
 	}
 }

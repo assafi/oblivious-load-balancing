@@ -73,5 +73,6 @@ public class ConfigurationTestCase {
 		assertEquals(QueuePolicy.FINITE,config.getPolicy());
 		assertEquals(10,config.getMemorySize());
 		assertTrue((config.getLoad() - 0.2) == 0.0);
+		assertTrue((config.getDistributionFactor() - 0.5) == 0.0);
 	}
 }
