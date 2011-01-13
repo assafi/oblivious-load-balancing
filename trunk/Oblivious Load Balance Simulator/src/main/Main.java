@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import config.Configuration;
 import config.LogFactory;
+import engine.Server;
 
 /**
  * @author Assaf Israel
@@ -26,6 +27,10 @@ public class Main {
 	
 	private static Logger log = LogFactory.getLog(Main.class);
 	
+	private static int steps = 1;
+	
+	private static Server[] servers = null;
+	
 	public static void main(String[] args) {
 		
 		log.info("Load balance simulator invoked");
@@ -34,16 +39,54 @@ public class Main {
 			System.exit(1);
 		}
 		
+		setup(args[0]);
+		execute();
+		collectStats();
+		
+		log.info("Simulation concluded");
+	}
+
+	/**
+	 * @param config
+	 */
+	private static void setup(String configFilePath) {
+
+		log.info(step() + "Retrieving system configurations.");
 		Configuration config = Configuration.getInstance();
 		try {
-			config.parseFile(args[0]);
+			config.parseFile(configFilePath);
 		} catch (Exception e) {
 			usage(e.getMessage());
 			System.exit(1);
 		}
+		
+		log.info(step() + "Configuring servers");
+		for (int i = 0; i < config.getNumServers(); i++) {
+			servers[i] = new Server(config);
+		}
+	}
 
-		log.debug("XML file: " + args[0] + " parsed succefully");
-		log.info("Done");
+	/**
+	 * 
+	 */
+	private static void execute() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
+	 * 
+	 */
+	private static void collectStats() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
+	 * @return
+	 */
+	private static String step() {
+		return "Step " + steps++ + ". ";
 	}
 
 	/**
