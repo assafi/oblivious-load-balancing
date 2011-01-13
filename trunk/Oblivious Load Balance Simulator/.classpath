@@ -9,5 +9,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/Oblivious Load Balance Simulator/lib/commons-math-2.1/commons-math-2.1-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/apache-log4j-1.2.16/log4j-1.2.16.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -9,7 +9,10 @@
  */
 package main;
 
+import org.apache.log4j.Logger;
+
 import config.Configuration;
+import config.LogFactory;
 
 /**
  * @author Assaf Israel
@@ -21,7 +24,11 @@ public class Main {
 	
 	private static final String USAGE = "<xml-config-file>";
 	
+	private static Logger log = LogFactory.getLog(Main.class);
+	
 	public static void main(String[] args) {
+		
+		log.info("Load balance simulator invoked");
 		if (args.length != NUM_EXPECTED_ARGUMENTS) {
 			usage("Wrong number of arguments");
 			System.exit(1);
@@ -34,14 +41,16 @@ public class Main {
 			usage(e.getMessage());
 			System.exit(1);
 		}
-		System.out.println("Done");
+
+		log.debug("XML file: " + args[0] + " parsed succefully");
+		log.info("Done");
 	}
 
 	/**
 	 * @param string
 	 */
 	private static void usage(String error) {
-		System.err.println(error);
+		log.error(error);
 		System.err.println(USAGE);
 	}
 }
