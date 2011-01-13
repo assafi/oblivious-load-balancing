@@ -18,6 +18,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.log4j.Logger;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -39,6 +40,8 @@ public class Configuration extends DefaultHandler {
 	Stack<String> xmlTags = new Stack<String>();
 
 	private static String tempVal = "";
+	
+	private static Logger log = LogFactory.getLog(Configuration.class);
 	
 	private Configuration() {}
 	
@@ -64,7 +67,16 @@ public class Configuration extends DefaultHandler {
 			throw new RuntimeException(se);
 		} catch (ParserConfigurationException pce) {
 			throw new RuntimeException(pce);
-		}		
+		}	
+		
+		log.debug("XML File " + xmlFile.getName() + " parsed.");
+		log.debug("No. Servers: " + numServers);
+		log.debug("Load: " + load);
+		log.debug("Queue policy: " + policy.name());
+		if (policy.equals(QueuePolicy.FINITE)) {
+			log.debug("Memory size: " + memorySize);
+			log.debug("Distribution factor: " + dFactor);
+		}
 	}
 
 	public static Configuration getInstance() {
