@@ -61,8 +61,9 @@ public class Main {
 		}
 		
 		log.info(step() + "Configuring servers");
+		Server.SetServersConfiguration(config);
 		for (int i = 0; i < config.getNumServers(); i++) {
-			servers[i] = new Server(config);
+			servers[i] = new Server();
 		}
 	}
 
