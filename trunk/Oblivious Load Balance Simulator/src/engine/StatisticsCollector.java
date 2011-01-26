@@ -56,7 +56,7 @@ public class StatisticsCollector {
 	private double lQAvgLength = 0; //The average length of low priority queue;
 	private int lQLengthUpdatesNum = 0;
 	
-	private StatisticsCollector(){
+	public StatisticsCollector(){
 		
 	}
 	
@@ -68,9 +68,6 @@ public class StatisticsCollector {
 		return instance;
 	}
 	
-	public StatisticsCollector(int serverID){
-		this.serverID = serverID;
-	}
 	
 	public void jobCompleted(Job job, Priority priority){
 		
