@@ -19,8 +19,9 @@ public class Job {
 	private long jobCreationTime;
 	private long executionStartTime;
 	private long executionEndTime;
-	private boolean discarded = false;
-	private boolean completedSuccessfully = false;
+	private JobState state;
+	
+	public enum JobState { INITIAL, IN_QUEUE, RUNNING, COMPLETED, DISCARDED, PREEMPTED, REJECTED }
 	
 	// This association helps keep the queue aware of the number of jobs
 	// that weren't discarded.
@@ -31,6 +32,7 @@ public class Job {
 		this.mirrorJob = mirrorJob;
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
+		this.state = JobState.INITIAL;
 	}
 	
 	public Job getMirrorJob()
@@ -48,32 +50,31 @@ public class Job {
 		return jobCreationTime;
 	}
 	
+	public JobState getState()
+	{
+		return state;
+	}
+	
+	public void setState(JobState state)
+	{
+		this.state = state;
+	}
+	
 	public void discardJob(long currentTime)
 	{
-		if(completedSuccessfully)
-		{
+		switch (state) {
+		case COMPLETED:
+			throw new RuntimeException("This shouldn't have happened, it is not possible for a job to complete while its mirror job was already completed");
+		case IN_QUEUE:
+			// Alert the queue that one of the jobs he has was discarded.
+			associatedQueue.alertJobDiscarded();
+		case RUNNING:
+			executionEndTime = currentTime;
+			state = JobState.DISCARDED;
+			break;
+		default:
 			return;
 		}
-		discarded = true;
-		executionEndTime = currentTime;
-		
-		// Alert the queue that one of the jobs he has was discarded.
-		associatedQueue.alertJobDiscarded();
-	}
-	
-	public boolean wasDiscarded()
-	{
-		return discarded;
-	}
-	
-	public void setJobCompletedSuccessfully()
-	{
-		completedSuccessfully = true;
-	}
-	
-	public boolean wasJobCompletedSuccessfully()
-	{
-		return completedSuccessfully;
 	}
 	
 	public long getExecutionEndTime()
@@ -86,12 +87,10 @@ public class Job {
 		executionEndTime = time;
 	}
 
-	
 	public void setExecutionStartTime(long time) {
 		this.executionStartTime = time;
 	}
 	
-
 	public long getExecutionStartTime() {
 		return executionStartTime;
 	}

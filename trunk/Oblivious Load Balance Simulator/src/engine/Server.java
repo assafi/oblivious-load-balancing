@@ -12,6 +12,7 @@ package engine;
 import org.apache.log4j.Logger;
 import config.Configuration;
 import config.LogFactory;
+import engine.Job.JobState;
 import exceptions.QueueIsFullException;
 
 /**
@@ -31,6 +32,8 @@ public class Server {
 	private JobsQueue hpQueue;
 	private Job currentJob = null;
 	
+	private StatisticsCollector statisticsCollector;
+	
 	public enum Priority { HIGH, LOW };
 	
 	public static void SetServersConfiguration(Configuration config)
@@ -49,8 +52,9 @@ public class Server {
 	 * @param config System configuration
 	 */
 	public Server() {
-		hpQueue = new JobsQueue(Priority.HIGH, hpQueueMaxSize);
-		lpQueue = new JobsQueue(Priority.LOW, lpQueueMaxSize);
+		statisticsCollector = new StatisticsCollector();
+		hpQueue = new JobsQueue(statisticsCollector, Priority.HIGH, hpQueueMaxSize);
+		lpQueue = new JobsQueue(statisticsCollector, Priority.LOW, lpQueueMaxSize);
 		serverID = ++lastServerCreatedID;
 		log.info(String.format("A server was created with ID = %d", serverID));
 	}
@@ -61,16 +65,18 @@ public class Server {
 		job.associatedQueue = jobsQueue;
 		try {
 			jobsQueue.enqueue(job);
+			job.setState(JobState.IN_QUEUE);
 			log.info(String.format("New job added to server %d with priority %s", serverID, priority.toString()));
 		} catch (QueueIsFullException e) {
+			job.setState(JobState.REJECTED);
+			statisticsCollector.jobRejected(job);
 			log.info(String.format("Queue with priority %s in Server %d is full and rejected a job.", priority.toString(), serverID));
-			// TODO: Alert the log that a job was rejected because of queue size
 		}
 	}
 	
 	public void currentTimeChanged(long currentTime)
 	{
-		if(null == currentJob)
+		if((null == currentJob) || (currentJob.getState() == JobState.DISCARDED))
 		{
 			// No job is currently being executed
 			executeNextJob(currentTime);
@@ -82,31 +88,44 @@ public class Server {
 				log.error(String.format("A job was execute more then it should have in server %d", serverID));
 				throw new RuntimeException("This shouldn't have happened, it means that a job was executed more then it was intended.");
 			}
-			if((currentJob.getExecutionStartTime() + currentJob.getJobLength()) == currentTime)
+			else if((currentJob.getExecutionStartTime() + currentJob.getJobLength()) == currentTime)
 			{
+				// The current job was fully executed 
 				currentJob.setExecutionEndTime(currentTime);
-				currentJob.setJobCompletedSuccessfully();
-				currentJob.getMirrorJob().discardJob(currentTime);
+				currentJob.setState(JobState.COMPLETED);
+				statisticsCollector.jobCompleted(currentJob);
+				if(currentJob.associatedQueue.getQueuePriority() == Priority.LOW)
+				{
+					// Low priority, therefore signaling the HQ after processing.
+					currentJob.getMirrorJob().discardJob(currentTime);
+				}
 				log.info(String.format("a job completed successfully in server ", serverID));
-				// TODO: Alert the log that a job was finished.
+				executeNextJob(currentTime);
+			}
+			else if((currentJob.associatedQueue.getQueuePriority() == Priority.LOW) && (!hpQueue.isEmpty())) 
+			{ 
+				currentJob.setExecutionEndTime(currentTime);
+				currentJob.setState(JobState.PREEMPTED);
+				//TODO: Alert the statistics collector that a low priority job was preempt because a high priority job needs to run.
 				executeNextJob(currentTime);
 			}
 		}
 	}
 
-	/**
-	 * 
-	 */
 	private void executeNextJob(long currentTime) {
 		if(!hpQueue.isEmpty())
 		{
 			log.info(String.format("Executing next job from high priority Queue in server %d", serverID));
 			currentJob = hpQueue.dequeue();
+			currentJob.setState(JobState.RUNNING);
+			// High priority, hence signaling the LQ before processing
+			currentJob.getMirrorJob().discardJob(currentTime);
 		}
 		else if(!lpQueue.isEmpty())
 		{
 			log.info(String.format("Executing next job from low priority Queue in server %d", serverID));
 			currentJob = lpQueue.dequeue();
+			currentJob.setState(JobState.RUNNING);
 		}
 		else
 		{
