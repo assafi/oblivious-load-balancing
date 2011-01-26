@@ -67,14 +67,14 @@ public class StatisticsCollector {
 	}
 	
 	
-	public void jobCompleted(Job job, Priority priority){
+	public void jobCompleted(Job job){
 		
 		totalJobNum++;
 		totalCompletedJobNum++;
 		totalJobsLength += job.getJobLength();
 		averageJobLength = (averageJobLength*(totalCompletedJobNum-1) + job.getJobLength())/totalCompletedJobNum;
 		
-		switch(priority){
+		switch(job.associatedQueue.getQueuePriority()){
 		case HIGH:
 			totalJobHQ++;
 			totalCompletedJobHQ++;
@@ -91,14 +91,14 @@ public class StatisticsCollector {
 			break;
 		}
 		
-		getGlobalCollector().jobCompleted(job, priority);
+		getGlobalCollector().jobCompleted(job);
 	}
 	
-	public void jobDiscarded(Job job, Priority priority){
+	public void jobDiscarded(Job job){
 		totalJobNum++;
 		totalDiscardedJobNum++;
 		
-		switch(priority){
+		switch(job.associatedQueue.getQueuePriority()){
 		case HIGH:
 			totalJobHQ++;
 			totalDiscardedJobHQ++;
@@ -110,7 +110,7 @@ public class StatisticsCollector {
 			break;
 		}
 		
-		getGlobalCollector().jobDiscarded(job, priority);
+		getGlobalCollector().jobDiscarded(job);
 	}
 	
 	public void updateQueueLength(Priority priority, int length){
