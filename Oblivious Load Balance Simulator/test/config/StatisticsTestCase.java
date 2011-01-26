@@ -61,7 +61,7 @@ public class StatisticsTestCase {
 	@Test
 	public void testExportXML() {
 		
-		StatisticsCollector tmp = StatisticsCollector.getInstance();
+		StatisticsCollector tmp = new StatisticsCollector();
 		File xmlFile = new File("testStatFile.xml");
 		
 		tmp.exportXML(xmlFile);

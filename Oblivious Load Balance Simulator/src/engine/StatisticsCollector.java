@@ -26,8 +26,6 @@ public class StatisticsCollector {
 	
 	private static StatisticsCollector instance;
 	
-	private int serverID;
-	
 	private int totalJobNum = 0; // The total number of jobs (Completed and discarded)
 	private int totalJobHQ = 0; // The total number of jobs in HQ (Completed and discarded)
 	private int totalJobLQ = 0; // The total number of jobs in LQ (Completed and discarded)
@@ -60,7 +58,7 @@ public class StatisticsCollector {
 		
 	}
 	
-	public static StatisticsCollector getInstance(){
+	public static StatisticsCollector getGlobalCollector(){
 		if (null == instance){
 			instance = new StatisticsCollector();
 		}
@@ -92,6 +90,8 @@ public class StatisticsCollector {
 			
 			break;
 		}
+		
+		getGlobalCollector().jobCompleted(job, priority);
 	}
 	
 	public void jobDiscarded(Job job, Priority priority){
@@ -109,6 +109,8 @@ public class StatisticsCollector {
 			totalDiscardedJobLQ++;
 			break;
 		}
+		
+		getGlobalCollector().jobDiscarded(job, priority);
 	}
 	
 	public void updateQueueLength(Priority priority, int length){
@@ -126,6 +128,8 @@ public class StatisticsCollector {
 			lQAvgLength = (lQAvgLength*(lQLengthUpdatesNum-1) + length)/lQLengthUpdatesNum;
 			break;
 		}
+		
+		getGlobalCollector().updateQueueLength(priority, length);
 	}
 	
 	public void exportXML(File xmlFile){
