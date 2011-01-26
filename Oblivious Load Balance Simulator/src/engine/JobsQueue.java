@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
+import engine.Job.JobState;
 import engine.Server.Priority;
 import exceptions.QueueIsFullException;
 
@@ -26,11 +27,13 @@ public class JobsQueue {
 	private Priority priority;
 	private int size;
 	private int maxSize;
+	private StatisticsCollector statisticsCollector;
 	
 	/**
 	 * 
 	 */
-	public JobsQueue(Priority priority, int maxSize) {
+	public JobsQueue(StatisticsCollector statisticsCollector, Priority priority, int maxSize) {
+		this.statisticsCollector = statisticsCollector;
 		queue = new LinkedList<Job>();
 		priority = this.priority;
 		maxSize = this.maxSize;
@@ -65,6 +68,7 @@ public class JobsQueue {
 		}
 		queue.add(job);
 		size++;
+		statisticsCollector.updateQueueLength(priority, size());
 	}
 	
 	public Job dequeue()
@@ -74,12 +78,13 @@ public class JobsQueue {
 			queue.clear();
 			throw new NoSuchElementException();
 		}
-		while(queue.peek().wasDiscarded())
+		while(queue.peek().getState() == JobState.DISCARDED)
 		{
 			queue.remove();
 		}
 		Job retJob = queue.remove();
 		size--;
+		statisticsCollector.updateQueueLength(priority, size());
 		if(isEmpty())
 		{
 			queue.clear();
@@ -87,11 +92,9 @@ public class JobsQueue {
 		return retJob;
 	}
 
-	/**
-	 * 
-	 */
 	public void alertJobDiscarded() {
 		size--;
+		statisticsCollector.updateQueueLength(priority, size());
 	}
 	
 }

@@ -26,17 +26,17 @@ public class StatisticsCollector {
 	
 	private static StatisticsCollector instance;
 	
-	private int totalJobNum = 0; // The total number of jobs (Completed and discarded)
-	private int totalJobHQ = 0; // The total number of jobs in HQ (Completed and discarded)
-	private int totalJobLQ = 0; // The total number of jobs in LQ (Completed and discarded)
+	private int totalJobNum = 0; // The total number of jobs (Completed and rejected)
+	private int totalJobHQ = 0; // The total number of jobs in HQ (Completed and rejected)
+	private int totalJobLQ = 0; // The total number of jobs in LQ (Completed and rejected)
 	
 	private int totalCompletedJobNum = 0; // The total number of completed jobs
 	private int totalCompletedJobHQ = 0; // The total number of completed jobs in HQ 
 	private int totalCompletedJobLQ = 0; // The total number of completed jobs in LQ
 	
-	private int totalDiscardedJobNum = 0; // The total number of discarded jobs
-	private int totalDiscardedJobHQ = 0; // The total number of discarded jobs in HQ 
-	private int totalDiscardedJobLQ = 0; // The total number of discarded jobs in LQ
+	private int totalRejectedJobNum = 0; // The total number of rejected jobs
+	private int totalRejectedJobHQ = 0; // The total number of rejected jobs in HQ 
+	private int totalRejectedJobLQ = 0; // The total number of rejected jobs in LQ
 	
 	private int totalJobsLength = 0; // The total length of all completed jobs
 	private int totalJobsLengthHQ = 0; // The total length of all completed jobs in HQ
@@ -94,23 +94,23 @@ public class StatisticsCollector {
 		getGlobalCollector().jobCompleted(job);
 	}
 	
-	public void jobDiscarded(Job job){
+	public void jobRejected(Job job){
 		totalJobNum++;
-		totalDiscardedJobNum++;
+		totalRejectedJobNum++;
 		
 		switch(job.associatedQueue.getQueuePriority()){
 		case HIGH:
 			totalJobHQ++;
-			totalDiscardedJobHQ++;
+			totalRejectedJobHQ++;
 			break;
 			
 		case LOW:
 			totalJobLQ++;
-			totalDiscardedJobLQ++;
+			totalRejectedJobLQ++;
 			break;
 		}
 		
-		getGlobalCollector().jobDiscarded(job);
+		getGlobalCollector().jobRejected(job);
 	}
 	
 	public void updateQueueLength(Priority priority, int length){
@@ -166,15 +166,15 @@ public class StatisticsCollector {
 				xmlPrinter.endElement("", "", "TotalCompletedJobLowPriority");
 				
 				xmlPrinter.startElement("", "", "TotalDiscardedJobs", atts);
-				xmlPrinter.characters(Integer.toString(totalDiscardedJobNum).toCharArray(), 0, Integer.toString(totalJobNum).length());
+				xmlPrinter.characters(Integer.toString(totalRejectedJobNum).toCharArray(), 0, Integer.toString(totalJobNum).length());
 				xmlPrinter.endElement("", "", "TotalDiscardedJobs");
 				
 				xmlPrinter.startElement("", "", "TotalDiscardedJobHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalDiscardedJobHQ).toCharArray(), 0, Integer.toString(totalJobNum).length());
+				xmlPrinter.characters(Integer.toString(totalRejectedJobHQ).toCharArray(), 0, Integer.toString(totalJobNum).length());
 				xmlPrinter.endElement("", "", "TotalDiscardedJobHighPriority");
 				
 				xmlPrinter.startElement("", "", "TotalDiscardedJobLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalDiscardedJobLQ).toCharArray(), 0, Integer.toString(totalJobNum).length());
+				xmlPrinter.characters(Integer.toString(totalRejectedJobLQ).toCharArray(), 0, Integer.toString(totalJobNum).length());
 				xmlPrinter.endElement("", "", "TotalDiscardedJobLowPriority");
 				
 				xmlPrinter.startElement("", "", "TotalJobsLength", atts);
@@ -274,21 +274,21 @@ public class StatisticsCollector {
 	 * @return the totalDiscardedJobNum
 	 */
 	public int getTotalDiscardedJobNum() {
-		return totalDiscardedJobNum;
+		return totalRejectedJobNum;
 	}
 
 	/**
 	 * @return the totalDiscardedJobHQ
 	 */
 	public int getTotalDiscardedJobHQ() {
-		return totalDiscardedJobHQ;
+		return totalRejectedJobHQ;
 	}
 
 	/**
 	 * @return the totalDiscardedJobLQ
 	 */
 	public int getTotalDiscardedJobLQ() {
-		return totalDiscardedJobLQ;
+		return totalRejectedJobLQ;
 	}
 
 	/**
