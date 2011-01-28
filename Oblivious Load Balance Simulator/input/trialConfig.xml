@@ -6,5 +6,6 @@
 	</servers-config>
 	<jobs-config>
 		<load>0.2</load>
+		<count>1000</count>
 	</jobs-config>
 </configuration>

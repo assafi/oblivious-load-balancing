@@ -66,11 +66,11 @@ public class Server {
 		try {
 			jobsQueue.enqueue(job);
 			job.setState(JobState.IN_QUEUE);
-			log.info(String.format("New job added to server %d with priority %s", serverID, priority.toString()));
+			log.debug(String.format("New job added to server %d with priority %s", serverID, priority.toString()));
 		} catch (QueueIsFullException e) {
 			job.setState(JobState.REJECTED);
 			statisticsCollector.jobRejected(job);
-			log.info(String.format("Queue with priority %s in Server %d is full and rejected a job.", priority.toString(), serverID));
+			log.debug(String.format("Queue with priority %s in Server %d is full and rejected a job.", priority.toString(), serverID));
 		}
 	}
 	
@@ -99,7 +99,7 @@ public class Server {
 					// Low priority, therefore signaling the HQ after processing.
 					currentJob.getMirrorJob().discardJob(currentTime);
 				}
-				log.info(String.format("a job completed successfully in server ", serverID));
+				log.debug(String.format("a job completed successfully in server ", serverID));
 				executeNextJob(currentTime);
 			}
 			else if((currentJob.associatedQueue.getQueuePriority() == Priority.LOW) && (!hpQueue.isEmpty())) 
@@ -115,7 +115,7 @@ public class Server {
 	private void executeNextJob(long currentTime) {
 		if(!hpQueue.isEmpty())
 		{
-			log.info(String.format("Executing next job from high priority Queue in server %d", serverID));
+			log.debug(String.format("Executing next job from high priority Queue in server %d", serverID));
 			currentJob = hpQueue.dequeue();
 			currentJob.setState(JobState.RUNNING);
 			// High priority, hence signaling the LQ before processing
@@ -123,13 +123,13 @@ public class Server {
 		}
 		else if(!lpQueue.isEmpty())
 		{
-			log.info(String.format("Executing next job from low priority Queue in server %d", serverID));
+			log.debug(String.format("Executing next job from low priority Queue in server %d", serverID));
 			currentJob = lpQueue.dequeue();
 			currentJob.setState(JobState.RUNNING);
 		}
 		else
 		{
-			log.info(String.format("No jobs to execute in server %d", serverID));
+			log.debug(String.format("No jobs to execute in server %d", serverID));
 			currentJob = null;	
 		}
 	}

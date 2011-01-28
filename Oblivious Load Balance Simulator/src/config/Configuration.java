@@ -36,6 +36,7 @@ public class Configuration extends DefaultHandler {
 	private double load = 0.0;
 	private int memorySize = 0;
 	private double dFactor = 0.0;
+	private long numJobs = 0;
 	
 	Stack<String> xmlTags = new Stack<String>();
 
@@ -77,6 +78,7 @@ public class Configuration extends DefaultHandler {
 			log.debug("Memory size: " + memorySize);
 			log.debug("Distribution factor: " + dFactor);
 		}
+		log.debug("No. Jobs: " + numJobs);
 	}
 
 	public static Configuration getInstance() {
@@ -112,6 +114,7 @@ public class Configuration extends DefaultHandler {
 		}
 		
 		tempVal = "";
+		xmlTags.push(qName);
 	}
 	
 	public void characters (char[] ch, int start, int length) 
@@ -122,7 +125,11 @@ public class Configuration extends DefaultHandler {
 	
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		if ("count".equals(qName)) {
-			numServers = Integer.valueOf(tempVal);
+			if (xmlTags.contains("servers-config")) {
+				numServers = Integer.valueOf(tempVal);
+			} else if (xmlTags.contains("jobs-config")) {
+				numJobs = Long.valueOf(tempVal);
+			}
 		} else if ("queue-policy".equals(qName)) {
 			if (policy.equals(QueuePolicy.FINITE)) {
 				memorySize = Integer.valueOf(tempVal);
@@ -130,6 +137,7 @@ public class Configuration extends DefaultHandler {
 		} else if ("load".equals(qName)) {
 			load = Double.valueOf(tempVal);
 		}
+		xmlTags.pop();
 	}
 
 	public int getNumServers() {
@@ -150,5 +158,9 @@ public class Configuration extends DefaultHandler {
 	
 	public double getDistributionFactor() {
 		return dFactor;
+	}
+
+	public long getNumJobs() {
+		return numJobs;
 	}
 }

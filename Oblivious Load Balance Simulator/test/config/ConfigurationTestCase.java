@@ -38,6 +38,7 @@ public class ConfigurationTestCase {
 		"	</servers-config>\n" +
 		"	<jobs-config>\n" +
 		"		<load>0.2</load>\n" +
+		"		<count>1000</count>\n" +	
 		"	</jobs-config>\n" +
 		"</configuration>";
 	private static File xmlFile = null;
@@ -74,5 +75,6 @@ public class ConfigurationTestCase {
 		assertEquals(10,config.getMemorySize());
 		assertTrue((config.getLoad() - 0.2) == 0.0);
 		assertTrue((config.getDistributionFactor() - 0.5) == 0.0);
+		assertEquals(1000,config.getNumJobs());
 	}
 }

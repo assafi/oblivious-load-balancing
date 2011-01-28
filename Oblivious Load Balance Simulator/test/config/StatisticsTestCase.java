@@ -25,6 +25,8 @@ import engine.StatisticsCollector;
  */
 public class StatisticsTestCase {
 
+	private static File xmlFile = new File("testStatFile.xml");;
+	
 	/**
 	 * @throws java.lang.Exception
 	 */
@@ -51,6 +53,9 @@ public class StatisticsTestCase {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		if (xmlFile.exists()) {
+			xmlFile.delete();
+		}
 	}
 
 	/**
@@ -60,9 +65,12 @@ public class StatisticsTestCase {
 	public void testExportXML() {
 		
 		StatisticsCollector tmp = new StatisticsCollector();
-		File xmlFile = new File("testStatFile.xml");
 		
 		tmp.exportXML(xmlFile);
+		
+		/*
+		 * Has some errors in cases where certain stats are "0" (devision by zero exceptions...)
+		 */
 	}
 
 }

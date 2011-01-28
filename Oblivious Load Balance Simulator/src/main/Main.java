@@ -13,7 +13,9 @@ import org.apache.log4j.Logger;
 
 import config.Configuration;
 import config.LogFactory;
+import engine.EventGenerator;
 import engine.Server;
+import engine.Simulator;
 
 /**
  * @author Assaf Israel
@@ -30,6 +32,9 @@ public class Main {
 	private static int steps = 1;
 	
 	private static Server[] servers = null;
+	
+	private static Configuration config = Configuration.getInstance();
+	private static Simulator simulator;
 	
 	public static void main(String[] args) {
 		
@@ -52,11 +57,15 @@ public class Main {
 	private static void setup(String configFilePath) {
 
 		log.info(step() + "Retrieving system configurations.");
-		Configuration config = Configuration.getInstance();
 		try {
 			config.parseFile(configFilePath);
 		} catch (Exception e) {
 			usage(e.getMessage());
+			System.exit(1);
+		}
+		
+		if (config.getNumServers() < 2) {
+			usage("Number of servers must exceed 1.");
 			System.exit(1);
 		}
 		
@@ -71,8 +80,9 @@ public class Main {
 	 * 
 	 */
 	private static void execute() {
-		// TODO Auto-generated method stub
-		
+		EventGenerator eGen = new EventGenerator(config);
+		simulator = new Simulator(eGen,servers);
+		simulator.execute();
 	}
 	
 	/**
@@ -94,7 +104,7 @@ public class Main {
 	 * @param string
 	 */
 	private static void usage(String error) {
-		log.error(error);
+		log.fatal(error);
 		System.err.println(USAGE);
 	}
 }
