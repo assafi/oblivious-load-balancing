@@ -31,7 +31,12 @@ public class Server {
 	private JobsQueue lpQueue; 
 	private JobsQueue hpQueue;
 	private Job currentJob = null;
+	private double localTime;
 	
+	public double getLocalTime() {
+		return localTime;
+	}
+
 	private StatisticsCollector statisticsCollector;
 	
 	public enum Priority { HIGH, LOW };
@@ -61,12 +66,21 @@ public class Server {
 	
 	public void AddJob(Job job, Priority priority)
 	{
+		// Updating the server's local time
+		currentTimeChanged(job.getCreationTime());
+		
+		if(localTime < job.getCreationTime())
+		{
+			throw new RuntimeException("This is not possible");
+		}
+		
 		JobsQueue jobsQueue = (priority == Priority.HIGH) ? hpQueue : lpQueue;
 		job.associatedQueue = jobsQueue;
+		job.associatedServer = this;
 		try {
 			jobsQueue.enqueue(job);
 			job.setState(JobState.IN_QUEUE);
-			log.debug(String.format("New job added to server %d with priority %s", serverID, priority.toString()));
+			log.debug(String.format("New job added to server %d with priority %s at %f", serverID, priority.toString(), job.getCreationTime()));
 		} catch (QueueIsFullException e) {
 			job.setState(JobState.REJECTED);
 			statisticsCollector.jobRejected(job);
@@ -74,64 +88,126 @@ public class Server {
 		}
 	}
 	
-	public void currentTimeChanged(long currentTime)
+	public void currentTimeChanged(double currentTime)
 	{
-		if((null == currentJob) || (currentJob.getState() == JobState.DISCARDED))
+		if(currentTime <= localTime)
 		{
-			// No job is currently being executed
-			executeNextJob(currentTime);
+			return;
 		}
-		else
+		
+		while(localTime < currentTime)
 		{
-			if((currentJob.getExecutionStartTime() + currentJob.getJobLength()) < currentTime)
+			if(currentJob != null) // A job is running
 			{
-				log.error(String.format("A job was execute more then it should have in server %d", serverID));
-				throw new RuntimeException("This shouldn't have happened, it means that a job was executed more then it was intended.");
+				handleRunningJob(currentTime);
 			}
-			else if((currentJob.getExecutionStartTime() + currentJob.getJobLength()) == currentTime)
+			else
 			{
-				// The current job was fully executed 
-				currentJob.setExecutionEndTime(currentTime);
-				currentJob.setState(JobState.COMPLETED);
-				statisticsCollector.jobCompleted(currentJob);
-				if(currentJob.associatedQueue.getQueuePriority() == Priority.LOW)
-				{
-					// Low priority, therefore signaling the HQ after processing.
-					currentJob.getMirrorJob().discardJob(currentTime);
-				}
-				log.debug(String.format("a job completed successfully in server ", serverID));
-				executeNextJob(currentTime);
-			}
-			else if((currentJob.associatedQueue.getQueuePriority() == Priority.LOW) && (!hpQueue.isEmpty())) 
-			{ 
-				currentJob.setExecutionEndTime(currentTime);
-				currentJob.setState(JobState.PREEMPTED);
-				//TODO: Alert the statistics collector that a low priority job was preempt because a high priority job needs to run.
-				executeNextJob(currentTime);
+				handleNextJob(currentTime);
 			}
 		}
 	}
 
-	private void executeNextJob(long currentTime) {
+
+
+	private void handleRunningJob(double currentTime) {
+		double jobAproxEndTime = currentJob.getExecutionStartTime() + currentJob.getJobLength();
+		if(currentJob.associatedQueue.getQueuePriority() == Priority.LOW)
+		{
+			// It is possible that the mirror server may finish the job as HP before this server does
+			// hence we are updating that server's local time.
+			double safeUpdateTime = Math.min(currentTime, jobAproxEndTime);
+			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
+			if(currentJob.getState() == JobState.DISCARDED)
+			{
+				localTime = currentJob.getDiscardTime();
+				currentJob = null;
+			}
+			else if(!hpQueue.isEmpty())
+			{
+				// putting the LP job back in the queue
+				currentJob.setState(JobState.IN_QUEUE);
+				lpQueue.addFirst(currentJob);
+				currentJob = null;
+			}
+			else if(jobAproxEndTime < currentTime)
+			{
+				// The LP job completed successfully
+				localTime = jobAproxEndTime;
+				currentJob.setExecutionEndTime(localTime);
+				currentJob.setState(JobState.COMPLETED);
+				currentJob.getMirrorJob().discardJob(localTime);
+				currentJob = null;
+			}
+			else
+			{
+				// The job still needs to run
+				localTime = currentTime;	
+			}
+		}
+		else // a HP job
+		{
+			if(jobAproxEndTime < currentTime)
+			{
+				localTime = jobAproxEndTime;
+				currentJob.setExecutionEndTime(localTime);
+				currentJob.setState(JobState.COMPLETED);
+				statisticsCollector.jobCompleted(currentJob);
+				log.debug(String.format("a job completed successfully in server %d at %f", serverID, localTime));
+				currentJob = null;
+			}
+			else
+			{
+				localTime = currentTime;
+			}
+		}
+	}
+	
+	private void handleNextJob(double currentTime) {
 		if(!hpQueue.isEmpty())
 		{
-			log.debug(String.format("Executing next job from high priority Queue in server %d", serverID));
 			currentJob = hpQueue.dequeue();
-			currentJob.setState(JobState.RUNNING);
-			// High priority, hence signaling the LQ before processing
-			currentJob.getMirrorJob().discardJob(currentTime);
+			// Giving the mirror server a chance to execute this job as LP before
+			// doing it in this server as HP.
+			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
+			if(currentJob.getState() == JobState.DISCARDED)
+			{
+				currentJob = null;
+			}
+			else
+			{
+				log.debug(String.format("Executing next job from high priority Queue in server %d", serverID));
+				currentJob.setState(JobState.RUNNING);
+				currentJob.setExecutionStartTime(localTime);
+				// High priority, hence signaling the LQ before processing
+				currentJob.getMirrorJob().discardJob(localTime);	
+			}
 		}
 		else if(!lpQueue.isEmpty())
 		{
-			log.debug(String.format("Executing next job from low priority Queue in server %d", serverID));
 			currentJob = lpQueue.dequeue();
+			
+			// It is possible that the mirror server may finish the job as HP before this server does
+			// hence we are updating that server's local time.
+			double safeUpdateTime = Math.min(currentTime, localTime + currentJob.getJobLength());
+			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
+			if(currentJob.getState() == JobState.DISCARDED)
+			{
+				currentJob = null;
+				return;
+			}
+			log.debug(String.format("Executing next job from low priority Queue in server %d", serverID));
 			currentJob.setState(JobState.RUNNING);
+			currentJob.setExecutionStartTime(localTime);
 		}
 		else
 		{
 			log.debug(String.format("No jobs to execute in server %d", serverID));
-			currentJob = null;	
+			currentJob = null;
+			localTime = currentTime;
 		}
+		
 	}
+
 
 }
