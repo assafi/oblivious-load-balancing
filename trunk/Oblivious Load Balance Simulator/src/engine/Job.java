@@ -33,6 +33,20 @@ public class Job {
 		this.jobCreationTime = creationTime;
 	}
 	
+	@Override
+	protected Job clone() throws CloneNotSupportedException {
+		Job ret;
+		if(this.mirrorJob == null)
+		{
+			ret = new Job(this.jobLength, this.jobCreationTime);
+		}
+		else
+		{
+			ret = new Job(this.mirrorJob, this.jobLength, this.jobCreationTime);
+		}
+		return ret;
+	}
+
 	public Job(Job mirrorJob, int jobLength, long creationTime)
 	{
 		this.mirrorJob = mirrorJob;
