@@ -30,11 +30,13 @@ public class JobsQueue {
 	private int maxSize;
 	private StatisticsCollector statisticsCollector;
 	
+	private Server associatedServer;
 	/**
 	 * 
 	 */
-	public JobsQueue(StatisticsCollector statisticsCollector, Priority priority, int maxSize) {
+	public JobsQueue(StatisticsCollector statisticsCollector, Server associatedServer, Priority priority, int maxSize) {
 		this.statisticsCollector = statisticsCollector;
+		this.associatedServer = associatedServer; 
 		list = new LinkedList<Job>();
 		priority = this.priority;
 		maxSize = this.maxSize;
@@ -69,7 +71,7 @@ public class JobsQueue {
 		}
 		list.add(job);
 		size++;
-		statisticsCollector.updateQueueLength(priority, size());
+		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 	}
 	
 	public void addFirst(Job job)
@@ -77,7 +79,7 @@ public class JobsQueue {
 		// Assume that the size of the queue didn't reach its limit 
 		list.addFirst(job);
 		size++;
-		statisticsCollector.updateQueueLength(priority, size());
+		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 	}
 	
 	public Job dequeue()
@@ -93,7 +95,7 @@ public class JobsQueue {
 		}
 		Job retJob = list.remove();
 		size--;
-		statisticsCollector.updateQueueLength(priority, size());
+		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 		if(isEmpty())
 		{
 			list.clear();
@@ -117,7 +119,7 @@ public class JobsQueue {
 
 	public void alertJobDiscarded() {
 		size--;
-		statisticsCollector.updateQueueLength(priority, size());
+		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 	}
 	
 }

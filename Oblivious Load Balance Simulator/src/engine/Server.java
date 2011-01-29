@@ -58,8 +58,8 @@ public class Server {
 	 */
 	public Server() {
 		statisticsCollector = new StatisticsCollector();
-		hpQueue = new JobsQueue(statisticsCollector, Priority.HIGH, hpQueueMaxSize);
-		lpQueue = new JobsQueue(statisticsCollector, Priority.LOW, lpQueueMaxSize);
+		hpQueue = new JobsQueue(statisticsCollector, this, Priority.HIGH, hpQueueMaxSize);
+		lpQueue = new JobsQueue(statisticsCollector, this, Priority.LOW, lpQueueMaxSize);
 		serverID = ++lastServerCreatedID;
 		log.info(String.format("A server was created with ID = %d", serverID));
 	}
