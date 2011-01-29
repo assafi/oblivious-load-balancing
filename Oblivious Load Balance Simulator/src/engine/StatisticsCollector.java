@@ -10,6 +10,7 @@
 package engine;
 
 import java.io.File;
+import java.util.HashMap;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
@@ -47,17 +48,15 @@ public class StatisticsCollector {
 	private int totalJobsLengthHQ = 0; // The total length of all completed jobs in HQ
 	private int totalJobsLengthLQ = 0; // The total length of all completed jobs in LQ
 	
-	private double averageJobLength = 0; // The average length of all completed jobs 
-	private double averageJobLengthHQ = 0; // The average length of all completed jobs in HQ
-	private double averageJobLengthLQ = 0; // The average length of all completed jobs in LQ
+	private HashMap<Integer, Double> hQLength = new HashMap<Integer, Double>(); // Map between the high priority queue length and the time the queue was in this length    
+	private double lastHQUpdateTime = 0;
+	private int lastUpdateHQLen = 0;
 	
-	private int hQMaxLength = 0; //The maximum length of high priority queue;
-	private double hQAvgLength = 0; //The average length of high priority queue;
-	private int hQLengthUpdatesNum = 0;
+	private HashMap<Integer, Double> lQLength = new HashMap<Integer, Double>(); // Map between the low priority queue length and the time the queue was in this length
+	private double lastLQUpdateTime = 0;
+	private int lastUpdateLQLen = 0;
 	
-	private int lQMaxLength = 0; //The maximum length of low priority queue;
-	private double lQAvgLength = 0; //The average length of low priority queue;
-	private int lQLengthUpdatesNum = 0;
+	private double totalRunTime = 0;
 	
 	public StatisticsCollector(){
 		
@@ -74,32 +73,35 @@ public class StatisticsCollector {
 	
 	public void jobCompleted(Job job){
 		
+		if(job.getJobLength() == 0){ // Job that states  that the run is over
+			totalRunTime = job.getCreationTime();
+		}
+		
 		totalJobNum++;
 		totalCompletedJobNum++;
 		totalJobsLength += job.getJobLength();
-		averageJobLength = (averageJobLength*(totalCompletedJobNum-1) + job.getJobLength())/totalCompletedJobNum;
 		
 		switch(job.associatedQueue.getQueuePriority()){
 		case HIGH:
 			totalJobHQ++;
 			totalCompletedJobHQ++;
 			totalJobsLengthHQ += job.getJobLength();
-			averageJobLengthHQ = (averageJobLengthHQ*(totalCompletedJobHQ-1) + job.getJobLength())/totalCompletedJobHQ;
 			break;
 			
 		case LOW:
 			totalJobLQ++;
 			totalCompletedJobLQ++;
 			totalJobsLengthLQ += job.getJobLength();
-			averageJobLengthLQ = (averageJobLengthLQ*(totalCompletedJobLQ-1) + job.getJobLength())/totalCompletedJobLQ;
-			
 			break;
 		}
 		
-		getGlobalCollector().jobCompleted(job);
+		//getGlobalCollector().jobCompleted(job);
 	}
 	
 	public void jobRejected(Job job){
+		if(job.getJobLength() == 0)
+			return;
+		
 		totalJobNum++;
 		totalRejectedJobNum++;
 		
@@ -114,11 +116,12 @@ public class StatisticsCollector {
 			totalRejectedJobLQ++;
 			break;
 		}
-		
-		getGlobalCollector().jobRejected(job);
 	}
 	
 	public void jobPreempted(Job job){
+		if(job.getJobLength() == 0)
+			return;
+		
 		totalJobNum++;
 		totalPreemptedJobNum++;
 		
@@ -133,27 +136,77 @@ public class StatisticsCollector {
 			totalPreemptedJobLQ++;
 			break;
 		}
-		
-		getGlobalCollector().jobRejected(job);
 	}
 	
-	public void updateQueueLength(Priority priority, int length){
+	public void updateQueueLength(Priority priority, int length, double localTime){
 		
+		double lenTime = 0;
 		switch(priority){
 		case HIGH:
-			hQLengthUpdatesNum++;
-			hQMaxLength = length > hQMaxLength ? length : hQMaxLength;
-			hQAvgLength = (hQAvgLength*(hQLengthUpdatesNum-1) + length)/hQLengthUpdatesNum;
+			if(hQLength.containsKey(lastUpdateHQLen)){
+				lenTime = hQLength.get(lastUpdateHQLen);
+				hQLength.remove(lastUpdateHQLen);
+			}
+			
+			hQLength.put(lastUpdateHQLen, lenTime + (lastHQUpdateTime - localTime));
+			lastHQUpdateTime = localTime;			
 			break;
 			
 		case LOW:
-			lQLengthUpdatesNum++;
-			lQMaxLength = length > lQMaxLength ? length : lQMaxLength;
-			lQAvgLength = (lQAvgLength*(lQLengthUpdatesNum-1) + length)/lQLengthUpdatesNum;
+			if(lQLength.containsKey(lastUpdateLQLen)){
+				lenTime = lQLength.get(lastUpdateLQLen);
+				lQLength.remove(lastUpdateLQLen);
+			}
+			
+			lQLength.put(lastUpdateLQLen, lenTime + (lastLQUpdateTime - localTime));
+			lastLQUpdateTime = localTime;
 			break;
 		}
+	}
+	
+	public void updateGlobalCollector(){
+		instance.totalJobNum += totalJobNum;
+		instance.totalJobHQ += totalJobHQ;
+		instance.totalJobLQ += totalJobLQ;
 		
-		getGlobalCollector().updateQueueLength(priority, length);
+		instance.totalCompletedJobNum += totalCompletedJobNum; 
+		instance.totalCompletedJobHQ += totalCompletedJobHQ; 
+		instance.totalCompletedJobLQ += totalCompletedJobLQ; 
+
+		instance.totalPreemptedJobNum += totalPreemptedJobNum; 
+		instance.totalPreemptedJobHQ += totalPreemptedJobHQ;  
+		instance.totalPreemptedJobLQ += totalPreemptedJobLQ; 
+
+
+		instance.totalRejectedJobNum += totalRejectedJobNum; 
+		instance.totalRejectedJobHQ += totalRejectedJobHQ; 
+		instance.totalRejectedJobLQ += totalRejectedJobLQ;  
+
+		instance.totalJobsLength += totalJobsLength;  
+		instance.totalJobsLengthHQ += totalJobsLengthHQ;  
+		instance.totalJobsLengthLQ += totalJobsLengthLQ;  
+
+		for (int len : hQLength.keySet()) {
+			if (instance.hQLength.containsKey(len)){
+				double tmp = instance.hQLength.get(len);
+				instance.hQLength.remove(len);
+				instance.hQLength.put(len, tmp+hQLength.get(len));
+			}
+			else{
+				instance.hQLength.put(len, hQLength.get(len));
+			}
+		}
+		
+		for (int len : lQLength.keySet()) {
+			if (instance.lQLength.containsKey(len)){
+				double tmp = instance.lQLength.get(len);
+				instance.lQLength.remove(len);
+				instance.lQLength.put(len, tmp+lQLength.get(len));
+			}
+			else{
+				instance.lQLength.put(len, lQLength.get(len));
+			}
+		}
 	}
 	
 	public void exportXML(File xmlFile){
@@ -194,7 +247,7 @@ public class StatisticsCollector {
 				xmlPrinter.endElement("", "", "TotalPreemptedJobs");
 				
 				xmlPrinter.startElement("", "", "PreemptedPercentage", atts);
-				double preemptPer = totalPreemptedJobNum/totalJobNum;
+				double preemptPer = totalJobNum == 0 ? 0 : totalPreemptedJobNum/totalJobNum;
 				xmlPrinter.characters(Double.toString(preemptPer).toCharArray(), 0, Double.toString(preemptPer).length());
 				xmlPrinter.endElement("", "", "PreemptedPercentage");
 				
@@ -211,7 +264,7 @@ public class StatisticsCollector {
 				xmlPrinter.endElement("", "", "TotalRejectedJobs");
 				
 				xmlPrinter.startElement("", "", "RejectedPercentage", atts);
-				double rejectedPer = totalRejectedJobNum/totalJobNum;
+				double rejectedPer = totalJobNum == 0 ? 0 : totalRejectedJobNum/totalJobNum;
 				xmlPrinter.characters(Double.toString(rejectedPer).toCharArray(), 0, Double.toString(rejectedPer).length());
 				xmlPrinter.endElement("", "", "RejectedPercentage");
 				
@@ -236,31 +289,38 @@ public class StatisticsCollector {
 				xmlPrinter.endElement("", "", "TotalJobsLengthLowPriority");
 				
 				xmlPrinter.startElement("", "", "AverageJobLength", atts);
+				double averageJobLength = getAverageJobLength();
 				xmlPrinter.characters(Double.toString(averageJobLength).toCharArray(), 0, Double.toString(averageJobLength).length());
 				xmlPrinter.endElement("", "", "AverageJobLength");
 				
 				xmlPrinter.startElement("", "", "AverageJobLengthHighPriority", atts);
+				double averageJobLengthHQ = getAverageJobLengthHQ();
 				xmlPrinter.characters(Double.toString(averageJobLengthHQ).toCharArray(), 0, Double.toString(averageJobLengthHQ).length());
 				xmlPrinter.endElement("", "", "AverageJobLengthHighPriority");
 				
 				xmlPrinter.startElement("", "", "AverageJobLengthLowPriority", atts);
+				double averageJobLengthLQ = getAverageJobLengthLQ();
 				xmlPrinter.characters(Double.toString(averageJobLengthLQ).toCharArray(), 0, Double.toString(averageJobLengthLQ).length());
 				xmlPrinter.endElement("", "", "AverageJobLengthLowPriority");
 				
 				xmlPrinter.startElement("", "", "HighPriorityQueueMaxLength", atts);
-				xmlPrinter.characters(Integer.toString(hQMaxLength).toCharArray(), 0, Integer.toString(hQMaxLength).length());
+				int maxHQLen = gethQMaxLength();
+				xmlPrinter.characters(Integer.toString(maxHQLen).toCharArray(), 0, Integer.toString(maxHQLen).length());
 				xmlPrinter.endElement("", "", "HighPriorityQueueMaxLength");
 				
 				xmlPrinter.startElement("", "", "HighPriorityQueueAverageLength", atts);
-				xmlPrinter.characters(Double.toString(hQAvgLength).toCharArray(), 0, Double.toString(hQAvgLength).length());
+				double avgHQLen = gethQAvgLength();
+				xmlPrinter.characters(Double.toString(avgHQLen).toCharArray(), 0, Double.toString(avgHQLen).length());
 				xmlPrinter.endElement("", "", "HighPriorityQueueAverageLength");
 				
 				xmlPrinter.startElement("", "", "LowPriorityQueueMaxLength", atts);
-				xmlPrinter.characters(Integer.toString(lQMaxLength).toCharArray(), 0, Integer.toString(lQMaxLength).length());
+				int maxLQLen = getlQMaxLength();
+				xmlPrinter.characters(Integer.toString(maxLQLen).toCharArray(), 0, Integer.toString(maxLQLen).length());
 				xmlPrinter.endElement("", "", "LowPriorityQueueMaxLength");
 				
 				xmlPrinter.startElement("", "", "LowPriorityQueueAverageLength", atts);
-				xmlPrinter.characters(Double.toString(lQAvgLength).toCharArray(), 0, Double.toString(lQAvgLength).length());
+				double avgLQLen = getlQAvgLength();
+				xmlPrinter.characters(Double.toString(avgLQLen).toCharArray(), 0, Double.toString(avgLQLen).length());
 				xmlPrinter.endElement("", "", "LowPriorityQueueAverageLength");
 				
 				xmlPrinter.endElement("", "", "Statistics");
@@ -362,49 +422,70 @@ public class StatisticsCollector {
 	 * @return the averageJobLength
 	 */
 	public double getAverageJobLength() {
-		return averageJobLength;
+		return totalJobsLength/totalJobNum;
 	}
 
 	/**
 	 * @return the averageJobLengthHQ
 	 */
 	public double getAverageJobLengthHQ() {
-		return averageJobLengthHQ;
+		return totalJobsLengthHQ/totalJobNum;
 	}
 
 	/**
 	 * @return the averageJobLengthLQ
 	 */
 	public double getAverageJobLengthLQ() {
-		return averageJobLengthLQ;
+		return totalJobsLengthLQ/totalJobNum;
 	}
 
 	/**
 	 * @return the hQMaxLength
 	 */
 	public int gethQMaxLength() {
-		return hQMaxLength;
+		int maxLen = -1;
+		for (int len : hQLength.keySet()) {
+			if (maxLen < len)
+				maxLen = len;
+		}
+		return maxLen;
 	}
 
 	/**
+	 * This should be invoked after the simulation is over
 	 * @return the hQAvgLength
 	 */
 	public double gethQAvgLength() {
-		return hQAvgLength;
+		double avgLen = 0;
+		for (int len : hQLength.keySet()) {
+			avgLen += (hQLength.get(len)/totalRunTime)*len;
+		}
+		
+		return avgLen;
 	}
 
 	/**
 	 * @return the lQMaxLength
 	 */
 	public int getlQMaxLength() {
-		return lQMaxLength;
+		int maxLen = -1;
+		for (int len : lQLength.keySet()) {
+			if (maxLen < len)
+				maxLen = len;
+		}
+		return maxLen;
 	}
 
 	/**
 	 * @return the lQAvgLength
 	 */
 	public double getlQAvgLength() {
-		return lQAvgLength;
+		double avgLen = 0;
+		for (int len : lQLength.keySet()) {
+			avgLen += (lQLength.get(len)/totalRunTime)*len;
+		}
+		
+		return avgLen;
 	}
 	
 	public double getPreemptedPercentage(){
