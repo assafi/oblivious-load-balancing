@@ -41,7 +41,10 @@ public class Simulator {
 	
 		while (!eGen.done()) {
 			Job primaryJob = eGen.nextJob();
-			Job secondaryJob = primaryJob; //primaryJob.clone(); CHANGE THIS !!!!
+			Job secondaryJob = primaryJob.clone(); 
+			
+			primaryJob.setMirrorJob(secondaryJob);
+			secondaryJob.setMirrorJob(primaryJob);
 			
 			int primaryServerIndex = indexRandomizer.nextInt(0, servers.length - 1);
 			int secondaryServerIndex = indexRandomizer.nextInt(0, servers.length - 1);
@@ -56,12 +59,12 @@ public class Simulator {
 			Server primaryServer = servers[primaryServerIndex];
 			Server secondaryServer = servers[secondaryServerIndex];
 
-			/*
-			 * Advancing time before inserting new jobs
-			 */
-			for (Server server : servers) {
-				server.currentTimeChanged(primaryJob.getCreationTime());
-			}
+//			/*
+//			 * Advancing time before inserting new jobs
+//			 */
+//			for (Server server : servers) {
+//				server.currentTimeChanged(primaryJob.getCreationTime());
+//			}
 			
 			primaryServer.AddJob(primaryJob, Priority.HIGH);
 			secondaryServer.AddJob(secondaryJob, Priority.LOW);
