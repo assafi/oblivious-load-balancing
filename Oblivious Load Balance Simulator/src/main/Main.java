@@ -44,9 +44,14 @@ public class Main {
 			System.exit(1);
 		}
 		
-		setup(args[0]);
-		execute();
-		collectStats();
+		try {
+			setup(args[0]);
+			execute();
+			collectStats();
+		} catch (IllegalArgumentException iae) {
+			usage(iae.getMessage());
+			System.exit(1);
+		}
 		
 		log.info("Simulation concluded");
 	}

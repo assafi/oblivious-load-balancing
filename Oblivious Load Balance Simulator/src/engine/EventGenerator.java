@@ -20,8 +20,6 @@ import config.Configuration;
  */
 public class EventGenerator {
 
-	private Configuration config;
-	
 	private long jobsRemained;
 	private double clock = 0.0;
 	
@@ -35,7 +33,6 @@ public class EventGenerator {
 	 * @param config
 	 */
 	public EventGenerator(Configuration config) {
-		this.config = config;
 		this.jobsRemained = config.getNumJobs();
 		
 		if (jobsRemained < 1) {
@@ -51,7 +48,7 @@ public class EventGenerator {
 		}
 		
 		// Normalized according to the number of servers
-		this.averageArrivalRate = 1/config.getNumServers() * config.getLoad(); 
+		this.averageArrivalRate = 1/(double)config.getNumServers() * config.getLoad(); 
 	}
 
 	/**
@@ -66,10 +63,10 @@ public class EventGenerator {
 	 */
 	public Job nextJob() {
 		double interval = intervalRandomizer.nextExponential(averageArrivalRate);
-		double jonLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
+		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
 
 		clock += interval;
-//		Job nextJob = new Job(null, jobLength, clock);
+//		Job nextJob = new Job(jobLength, clock);
 		return null;
 	}
 
