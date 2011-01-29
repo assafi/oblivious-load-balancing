@@ -27,7 +27,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Assaf Israel
  *
  */
-public class Configuration extends DefaultHandler {
+public class Configuration extends DefaultHandler implements IConfiguration {
 
 	private static Configuration instance = null; 
 	
