@@ -74,7 +74,7 @@ public class StatisticsCollector {
 	public void jobCompleted(Job job){
 		
 		if(job.getJobLength() == 0){ // Job that states  that the run is over
-			totalRunTime = job.getCreationTime();
+			return;
 		}
 		
 		totalJobNum++;
@@ -94,8 +94,6 @@ public class StatisticsCollector {
 			totalJobsLengthLQ += job.getJobLength();
 			break;
 		}
-		
-		//getGlobalCollector().jobCompleted(job);
 	}
 	
 	public void jobRejected(Job job){
@@ -162,6 +160,10 @@ public class StatisticsCollector {
 			lastLQUpdateTime = localTime;
 			break;
 		}
+	}
+	
+	public void endCollection(double time){
+		totalRunTime = time;
 	}
 	
 	public void updateGlobalCollector(){
