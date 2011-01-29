@@ -12,7 +12,7 @@ package engine;
 import org.apache.commons.math.random.RandomData;
 import org.apache.commons.math.random.RandomDataImpl;
 
-import config.Configuration;
+import config.IConfiguration;
 
 /**
  * @author Assaf Israel
@@ -20,6 +20,7 @@ import config.Configuration;
  */
 public class EventGenerator {
 
+	private static final double EPSILON = 1e-8;
 	private long jobsRemained;
 	private double clock = 0.0;
 	
@@ -32,7 +33,7 @@ public class EventGenerator {
 	/**
 	 * @param config
 	 */
-	public EventGenerator(Configuration config) {
+	public EventGenerator(IConfiguration config) {
 		this.jobsRemained = config.getNumJobs();
 		
 		if (jobsRemained < 1) {
@@ -64,6 +65,12 @@ public class EventGenerator {
 	public Job nextJob() {
 		double interval = intervalRandomizer.nextExponential(averageArrivalRate);
 		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
+		
+		/*
+		 * According to the definition of exponential probability the result cannot be <=0 !
+		 */
+		assert(interval < EPSILON);
+		assert(jobLength < EPSILON);
 
 		clock += interval;
 //		Job nextJob = new Job(jobLength, clock);
