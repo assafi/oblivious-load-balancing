@@ -59,7 +59,7 @@ public class StatisticsCollector {
 	private double totalRunTime = 0;
 	
 	public StatisticsCollector(){
-		
+		getGlobalCollector(); // create the global instance
 	}
 	
 	public static StatisticsCollector getGlobalCollector(){
