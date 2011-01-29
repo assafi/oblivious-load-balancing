@@ -10,6 +10,7 @@
 package engine;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
@@ -23,7 +24,7 @@ import exceptions.QueueIsFullException;
  */
 public class JobsQueue {
 
-	private Queue<Job> queue;
+	private LinkedList<Job> list;
 	private Priority priority;
 	private int size;
 	private int maxSize;
@@ -34,7 +35,7 @@ public class JobsQueue {
 	 */
 	public JobsQueue(StatisticsCollector statisticsCollector, Priority priority, int maxSize) {
 		this.statisticsCollector = statisticsCollector;
-		queue = new LinkedList<Job>();
+		list = new LinkedList<Job>();
 		priority = this.priority;
 		maxSize = this.maxSize;
 		size = 0;
@@ -62,11 +63,19 @@ public class JobsQueue {
 	
 	public void enqueue(Job job) throws QueueIsFullException
 	{
-		if(size() == maxSize)
+		if(size() >= maxSize)
 		{
 			throw new QueueIsFullException(job);
 		}
-		queue.add(job);
+		list.add(job);
+		size++;
+		statisticsCollector.updateQueueLength(priority, size());
+	}
+	
+	public void addFirst(Job job)
+	{
+		// Assume that the size of the queue didn't reach its limit 
+		list.addFirst(job);
 		size++;
 		statisticsCollector.updateQueueLength(priority, size());
 	}
@@ -75,21 +84,35 @@ public class JobsQueue {
 	{
 		if(isEmpty())
 		{
-			queue.clear();
+			list.clear();
 			throw new NoSuchElementException();
 		}
-		while(queue.peek().getState() == JobState.DISCARDED)
+		while(list.peek().getState() == JobState.DISCARDED)
 		{
-			queue.remove();
+			list.remove();
 		}
-		Job retJob = queue.remove();
+		Job retJob = list.remove();
 		size--;
 		statisticsCollector.updateQueueLength(priority, size());
 		if(isEmpty())
 		{
-			queue.clear();
+			list.clear();
 		}
 		return retJob;
+	}
+	
+	public Job peek()
+	{
+		if(isEmpty())
+		{
+			list.clear();
+			throw new NoSuchElementException();
+		}
+		while(list.peek().getState() == JobState.DISCARDED)
+		{
+			list.remove();
+		}
+		return list.peek();
 	}
 
 	public void alertJobDiscarded() {

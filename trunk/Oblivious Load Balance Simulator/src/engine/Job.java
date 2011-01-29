@@ -15,19 +15,30 @@ package engine;
  */
 public class Job {
 	private Job mirrorJob;
-	private int jobLength;
-	private long jobCreationTime;
-	private long executionStartTime;
-	private long executionEndTime;
+	private double jobLength;
+	private double jobCreationTime;
+	private double executionStartTime;
+	private double executionEndTime;
+	private double discardTime;
+	public double getDiscardTime() {
+		return discardTime;
+	}
+
+	public void setDiscardTime(double discardTime) {
+		this.discardTime = discardTime;
+	}
+
 	private JobState state;
 	
 	public enum JobState { INITIAL, IN_QUEUE, RUNNING, COMPLETED, DISCARDED, PREEMPTED, REJECTED }
 	
-	// This association helps keep the queue aware of the number of jobs
-	// that weren't discarded.
+	// This queue this job belongs to.
 	public JobsQueue associatedQueue;
+
+	// The server this job belongs to.
+	public Server associatedServer;
 	
-	public Job(int jobLength, long creationTime)
+	public Job(double jobLength, double creationTime)
 	{
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
@@ -47,7 +58,7 @@ public class Job {
 		return ret;
 	}
 
-	public Job(Job mirrorJob, int jobLength, long creationTime)
+	public Job(Job mirrorJob, double jobLength, double creationTime)
 	{
 		this.mirrorJob = mirrorJob;
 		this.jobLength = jobLength;
@@ -65,12 +76,12 @@ public class Job {
 		this.mirrorJob = mirrorJob;
 	}
 
-	public int getJobLength()
+	public double getJobLength()
 	{
 		return jobLength;
 	}
 	
-	public long getCreationTime()
+	public double getCreationTime()
 	{
 		return jobCreationTime;
 	}
@@ -85,7 +96,7 @@ public class Job {
 		this.state = state;
 	}
 	
-	public void discardJob(long currentTime)
+	public void discardJob(double currentTime)
 	{
 		switch (state) {
 		case COMPLETED:
@@ -94,7 +105,7 @@ public class Job {
 			// Alert the queue that one of the jobs he has was discarded.
 			associatedQueue.alertJobDiscarded();
 		case RUNNING:
-			executionEndTime = currentTime;
+			discardTime = currentTime;
 			state = JobState.DISCARDED;
 			break;
 		default:
@@ -102,21 +113,21 @@ public class Job {
 		}
 	}
 	
-	public long getExecutionEndTime()
+	public double getExecutionEndTime()
 	{
 		return executionEndTime;
 	}
 	
-	public void setExecutionEndTime(long time)
+	public void setExecutionEndTime(double time)
 	{
 		executionEndTime = time;
 	}
 
-	public void setExecutionStartTime(long time) {
+	public void setExecutionStartTime(double time) {
 		this.executionStartTime = time;
 	}
 	
-	public long getExecutionStartTime() {
+	public double getExecutionStartTime() {
 		return executionStartTime;
 	}
 	
