@@ -68,9 +68,6 @@ public class StatisticsTestCase {
 		
 		tmp.exportXML(xmlFile);
 		
-		/*
-		 * Has some errors in cases where certain stats are "0" (devision by zero exceptions...)
-		 */
 	}
 
 }
