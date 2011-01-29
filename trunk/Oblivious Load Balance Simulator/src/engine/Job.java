@@ -27,6 +27,12 @@ public class Job {
 	// that weren't discarded.
 	public JobsQueue associatedQueue;
 	
+	public Job(int jobLength, long creationTime)
+	{
+		this.jobLength = jobLength;
+		this.jobCreationTime = creationTime;
+	}
+	
 	public Job(Job mirrorJob, int jobLength, long creationTime)
 	{
 		this.mirrorJob = mirrorJob;
@@ -38,6 +44,11 @@ public class Job {
 	public Job getMirrorJob()
 	{
 		return mirrorJob;
+	}
+	
+	public void setMirrorJob(Job mirrorJob)
+	{
+		this.mirrorJob = mirrorJob;
 	}
 
 	public int getJobLength()
