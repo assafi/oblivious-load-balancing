@@ -34,7 +34,7 @@ public class Job {
 	}
 	
 	@Override
-	protected Job clone() throws CloneNotSupportedException {
+	protected Job clone() {
 		Job ret;
 		if(this.mirrorJob == null)
 		{
