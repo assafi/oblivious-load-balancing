@@ -424,21 +424,21 @@ public class StatisticsCollector {
 	 * @return the averageJobLength
 	 */
 	public double getAverageJobLength() {
-		return totalJobsLength/totalJobNum;
+		return totalJobNum == 0 ? 0 : totalJobsLength/totalJobNum;
 	}
 
 	/**
 	 * @return the averageJobLengthHQ
 	 */
 	public double getAverageJobLengthHQ() {
-		return totalJobsLengthHQ/totalJobNum;
+		return totalJobNum == 0 ? 0 : totalJobsLengthHQ/totalJobNum;
 	}
 
 	/**
 	 * @return the averageJobLengthLQ
 	 */
 	public double getAverageJobLengthLQ() {
-		return totalJobsLengthLQ/totalJobNum;
+		return totalJobNum == 0 ? 0 : totalJobsLengthLQ/totalJobNum;
 	}
 
 	/**
@@ -491,10 +491,10 @@ public class StatisticsCollector {
 	}
 	
 	public double getPreemptedPercentage(){
-		return totalPreemptedJobNum/totalJobNum;
+		return totalJobNum == 0 ? 0 : totalPreemptedJobNum/totalJobNum;
 	}
 	
 	public double getRejectedPercentage(){
-		return totalRejectedJobNum/totalJobNum;
+		return totalJobNum == 0 ? 0 : totalRejectedJobNum/totalJobNum;
 	}
 }
