@@ -74,6 +74,12 @@ public class Server {
 			throw new RuntimeException("This is not possible");
 		}
 		
+		if(job.getJobLength() == 0.0)
+		{
+			this.shutDown(localTime);
+			return;
+		}
+		
 		JobsQueue jobsQueue = (priority == Priority.HIGH) ? hpQueue : lpQueue;
 		job.associatedQueue = jobsQueue;
 		job.associatedServer = this;
@@ -88,6 +94,15 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * 
+	 */
+	private void shutDown(double currentTime) {
+		hpQueue = null;
+		lpQueue = null;
+		statisticsCollector.endCollection(currentTime);
+	}
+
 	public void currentTimeChanged(double currentTime)
 	{
 		if(currentTime <= localTime)
@@ -128,6 +143,7 @@ public class Server {
 				// putting the LP job back in the queue
 				currentJob.setState(JobState.IN_QUEUE);
 				lpQueue.addFirst(currentJob);
+				statisticsCollector.jobPreempted(currentJob);
 				currentJob = null;
 			}
 			else if(jobAproxEndTime < currentTime)
@@ -137,6 +153,8 @@ public class Server {
 				currentJob.setExecutionEndTime(localTime);
 				currentJob.setState(JobState.COMPLETED);
 				currentJob.getMirrorJob().discardJob(localTime);
+				statisticsCollector.jobCompleted(currentJob);
+				log.debug(String.format("a job completed successfully in server %d at %f", serverID, localTime));
 				currentJob = null;
 			}
 			else
