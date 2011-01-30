@@ -69,12 +69,12 @@ public class Server {
 		// Updating the server's local time
 		currentTimeChanged(job.getCreationTime());
 		
-		if(localTime < job.getCreationTime())
+		if(Double.compare(localTime, job.getCreationTime()) != 0)
 		{
-			throw new RuntimeException("This is not possible");
+			throw new RuntimeException("This is not possible, at this stage the local time should equal the job's creation time");
 		}
 		
-		if(job.getJobLength() == 0.0)
+		if(Double.compare(job.getJobLength(), 0.0) == 0)
 		{
 			this.shutDown(localTime);
 			return;
@@ -94,9 +94,7 @@ public class Server {
 		}
 	}
 	
-	/**
-	 * 
-	 */
+
 	private void shutDown(double currentTime) {
 		hpQueue = null;
 		lpQueue = null;
@@ -105,12 +103,12 @@ public class Server {
 
 	public void currentTimeChanged(double currentTime)
 	{
-		if(currentTime <= localTime)
+		if(Double.compare(localTime, currentTime) >= 0)
 		{
 			return;
 		}
 		
-		while(localTime < currentTime)
+		while(Double.compare(localTime, currentTime) < 0)
 		{
 			if(currentJob != null) // A job is running
 			{
@@ -122,8 +120,6 @@ public class Server {
 			}
 		}
 	}
-
-
 
 	private void handleRunningJob(double currentTime) {
 		double jobAproxEndTime = currentJob.getExecutionStartTime() + currentJob.getJobLength();
@@ -146,7 +142,7 @@ public class Server {
 				statisticsCollector.jobPreempted(currentJob);
 				currentJob = null;
 			}
-			else if(jobAproxEndTime < currentTime)
+			else if(Double.compare(jobAproxEndTime, currentTime) < 0)
 			{
 				// The LP job completed successfully
 				localTime = jobAproxEndTime;
@@ -165,7 +161,7 @@ public class Server {
 		}
 		else // a HP job
 		{
-			if(jobAproxEndTime < currentTime)
+			if(Double.compare(jobAproxEndTime, currentTime) < 0)
 			{
 				localTime = jobAproxEndTime;
 				currentJob.setExecutionEndTime(localTime);
@@ -223,9 +219,7 @@ public class Server {
 			log.debug(String.format("No jobs to execute in server %d", serverID));
 			currentJob = null;
 			localTime = currentTime;
-		}
-		
+		}	
 	}
-
-
+	
 }
