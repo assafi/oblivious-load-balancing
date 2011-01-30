@@ -27,11 +27,8 @@ public class JobsQueue {
 	private int size;
 	private int maxSize;
 	private StatisticsCollector statisticsCollector;
-	
 	private Server associatedServer;
-	/**
-	 * 
-	 */
+
 	public JobsQueue(StatisticsCollector statisticsCollector, Server associatedServer, Priority priority, int maxSize) {
 		this.statisticsCollector = statisticsCollector;
 		this.associatedServer = associatedServer; 

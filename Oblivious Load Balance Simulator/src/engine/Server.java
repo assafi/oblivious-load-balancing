@@ -53,9 +53,6 @@ public class Server {
 		log.info(String.format("Max size of LP Queue is %d", lpQueueMaxSize));
 	}
 	
-	/**
-	 * @param config System configuration
-	 */
 	public Server() {
 		statisticsCollector = new StatisticsCollector();
 		hpQueue = new JobsQueue(statisticsCollector, this, Priority.HIGH, hpQueueMaxSize);
@@ -94,7 +91,6 @@ public class Server {
 		}
 	}
 	
-
 	private void shutDown(double currentTime) {
 		hpQueue = null;
 		lpQueue = null;

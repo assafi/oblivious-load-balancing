@@ -20,19 +20,11 @@ public class Job {
 	private double executionStartTime;
 	private double executionEndTime;
 	private double discardTime;
-	public double getDiscardTime() {
-		return discardTime;
-	}
-
-	public void setDiscardTime(double discardTime) {
-		this.discardTime = discardTime;
-	}
-
 	private JobState state;
 	
 	public enum JobState { INITIAL, IN_QUEUE, RUNNING, COMPLETED, DISCARDED, PREEMPTED, REJECTED }
-	
-	// This queue this job belongs to.
+
+	// The queue this job belongs to.
 	public JobsQueue associatedQueue;
 
 	// The server this job belongs to.
@@ -129,6 +121,14 @@ public class Job {
 	
 	public double getExecutionStartTime() {
 		return executionStartTime;
+	}
+	
+	public double getDiscardTime() {
+		return discardTime;
+	}
+
+	public void setDiscardTime(double discardTime) {
+		this.discardTime = discardTime;
 	}
 	
 }
