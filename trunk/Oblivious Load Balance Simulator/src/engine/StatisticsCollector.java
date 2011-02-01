@@ -59,7 +59,7 @@ public class StatisticsCollector {
 	private double totalRunTime = 0;
 	
 	public StatisticsCollector(){
-		getGlobalCollector(); // create the global instance
+		
 	}
 	
 	public static StatisticsCollector getGlobalCollector(){
@@ -167,6 +167,9 @@ public class StatisticsCollector {
 	}
 	
 	public void updateGlobalCollector(){
+		
+		getGlobalCollector(); // create the global collector if it is not created yet.
+		
 		instance.totalJobNum += totalJobNum;
 		instance.totalJobHQ += totalJobHQ;
 		instance.totalJobLQ += totalJobLQ;
