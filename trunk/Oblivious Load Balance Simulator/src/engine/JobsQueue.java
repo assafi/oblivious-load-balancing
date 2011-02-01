@@ -33,8 +33,8 @@ public class JobsQueue {
 		this.statisticsCollector = statisticsCollector;
 		this.associatedServer = associatedServer; 
 		list = new LinkedList<Job>();
-		priority = this.priority;
-		maxSize = this.maxSize;
+		this.priority = priority;
+		this.maxSize = maxSize;
 		size = 0;
 	}
 	
