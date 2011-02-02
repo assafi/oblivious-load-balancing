@@ -59,7 +59,7 @@ public class Server {
 		hpQueue = new JobsQueue(statisticsCollector, this, Priority.HIGH, hpQueueMaxSize);
 		lpQueue = new JobsQueue(statisticsCollector, this, Priority.LOW, lpQueueMaxSize);
 		serverID = ++lastServerCreatedID;
-		log.info(String.format("A server was created with ID = %d", serverID));
+		log.debug(String.format("A server was created with ID = %d", serverID));
 	}
 	
 	public void AddJob(Job job, Priority priority)
@@ -84,11 +84,11 @@ public class Server {
 		try {
 			jobsQueue.enqueue(job);
 			job.setState(JobState.IN_QUEUE);
-			log.debug(String.format("New job added to server %d with priority %s at %f", serverID, priority.toString(), job.getCreationTime()));
+			log.debug(String.format("New job added to server %d with priority %s at %f", serverID, priority.toString(), localTime));
 		} catch (QueueIsFullException e) {
 			job.setState(JobState.REJECTED);
 			statisticsCollector.jobRejected(job);
-			log.debug(String.format("Queue with priority %s in Server %d is full and rejected a job.", priority.toString(), serverID));
+			log.debug(String.format("Queue with priority %s in Server %d is full and rejected a job at %f.", priority.toString(), serverID, localTime));
 		}
 	}
 	
@@ -130,6 +130,7 @@ public class Server {
 			{
 				localTime = currentJob.getDiscardTime();
 				currentJob = null;
+				log.debug(String.format("Running LP job was discarded at server %d at %f", serverID, localTime));
 			}
 			else if(!hpQueue.isEmpty())
 			{
@@ -138,6 +139,7 @@ public class Server {
 				lpQueue.addFirst(currentJob);
 				statisticsCollector.jobPreempted(currentJob);
 				currentJob = null;
+				log.debug(String.format("Running LP job was preempted at server %d at %f", serverID, localTime));
 			}
 			else if(Double.compare(jobAproxEndTime, currentTime) < 0)
 			{
@@ -147,13 +149,14 @@ public class Server {
 				currentJob.setState(JobState.COMPLETED);
 				currentJob.getMirrorJob().discardJob(localTime);
 				statisticsCollector.jobCompleted(currentJob);
-				log.debug(String.format("a job completed successfully in server %d at %f", serverID, localTime));
+				log.debug(String.format("Running LP job was completed successfully at server %d at %f", serverID, localTime));
 				currentJob = null;
 			}
 			else
 			{
 				// The job still needs to run
-				localTime = currentTime;	
+				localTime = currentTime;
+				log.debug(String.format("Server %d local time updated to %f", serverID, localTime));
 			}
 		}
 		else // a HP job
@@ -164,12 +167,13 @@ public class Server {
 				currentJob.setExecutionEndTime(localTime);
 				currentJob.setState(JobState.COMPLETED);
 				statisticsCollector.jobCompleted(currentJob);
-				log.debug(String.format("a job completed successfully in server %d at %f", serverID, localTime));
 				currentJob = null;
+				log.debug(String.format("Running HP job was completed successfully at server %d at %f", serverID, localTime));
 			}
 			else
 			{
 				localTime = currentTime;
+				log.debug(String.format("Server %d local time updated to %f", serverID, localTime));
 			}
 		}
 	}
@@ -187,7 +191,7 @@ public class Server {
 			}
 			else
 			{
-				log.debug(String.format("Executing next job from high priority Queue in server %d", serverID));
+				log.debug(String.format("New HP job started on server %d at %f", serverID, localTime));
 				currentJob.setState(JobState.RUNNING);
 				currentJob.setExecutionStartTime(localTime);
 				// High priority, hence signaling the LQ before processing
@@ -207,13 +211,13 @@ public class Server {
 				currentJob = null;
 				return;
 			}
-			log.debug(String.format("Executing next job from low priority Queue in server %d", serverID));
+			log.debug(String.format("New LP job started on server %d at %f", serverID, localTime));
 			currentJob.setState(JobState.RUNNING);
 			currentJob.setExecutionStartTime(localTime);
 		}
 		else
 		{
-			log.debug(String.format("No jobs to execute in server %d", serverID));
+			log.debug(String.format("No jobs to execute in server %d at %f hence progressing time to %f", serverID, localTime, currentTime));
 			currentJob = null;
 			localTime = currentTime;
 		}	
