@@ -11,6 +11,7 @@ package engine;
 
 import org.apache.log4j.Logger;
 import config.Configuration;
+import config.IConfiguration;
 import config.LogFactory;
 import engine.Job.JobState;
 import exceptions.QueueIsFullException;
@@ -21,7 +22,7 @@ import exceptions.QueueIsFullException;
  */
 public class Server {
 	private static Logger log = LogFactory.getLog(Server.class);
-	private static Configuration config;
+	private static IConfiguration config;
 	private static int lpQueueMaxSize;
 	private static int hpQueueMaxSize;
 	
@@ -41,7 +42,7 @@ public class Server {
 	
 	public enum Priority { HIGH, LOW };
 	
-	public static void SetServersConfiguration(Configuration config)
+	public static void SetServersConfiguration(IConfiguration config)
 	{
 		Server.config = config;
 		int totalSlots = Server.config.getMemorySize();

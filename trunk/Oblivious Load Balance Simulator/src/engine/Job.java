@@ -34,6 +34,7 @@ public class Job {
 	{
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
+		this.state = JobState.INITIAL;
 	}
 	
 	@Override
