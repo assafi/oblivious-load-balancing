@@ -9,11 +9,17 @@
  */
 package engine;
 
+import org.apache.log4j.Logger;
+
+import config.LogFactory;
+
 /**
  * @author Asi Bross
  *
  */
 public class Job {
+	private static Logger log = LogFactory.getLog(Job.class);
+	
 	private Job mirrorJob;
 	private double jobLength;
 	private double jobCreationTime;
@@ -21,6 +27,10 @@ public class Job {
 	private double executionEndTime;
 	private double discardTime;
 	private JobState state;
+	
+	private static int lastJobCreatedID = 0; // For debug
+	public int jobID; // For debug
+	
 	
 	public enum JobState { INITIAL, IN_QUEUE, RUNNING, COMPLETED, DISCARDED, PREEMPTED, REJECTED }
 
@@ -32,23 +42,12 @@ public class Job {
 	
 	public Job(double jobLength, double creationTime)
 	{
-		this.jobLength = jobLength;
-		this.jobCreationTime = creationTime;
-		this.state = JobState.INITIAL;
+		this(null, jobLength, creationTime);
 	}
 	
 	@Override
 	protected Job clone() {
-		Job ret;
-		if(this.mirrorJob == null)
-		{
-			ret = new Job(this.jobLength, this.jobCreationTime);
-		}
-		else
-		{
-			ret = new Job(this.mirrorJob, this.jobLength, this.jobCreationTime);
-		}
-		return ret;
+		return new Job(this.mirrorJob, this.jobLength, this.jobCreationTime);
 	}
 
 	public Job(Job mirrorJob, double jobLength, double creationTime)
@@ -57,6 +56,7 @@ public class Job {
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
 		this.state = JobState.INITIAL;
+		jobID = ++lastJobCreatedID;
 	}
 	
 	public Job getMirrorJob()
@@ -104,6 +104,7 @@ public class Job {
 		default:
 			return;
 		}
+		log.debug(String.format("Job[%d] with priority %s discarded at server %d", jobID, associatedQueue.getQueuePriority().name(), associatedServer.serverID));
 	}
 	
 	public double getExecutionEndTime()

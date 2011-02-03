@@ -10,7 +10,7 @@
 package engine;
 
 import org.apache.log4j.Logger;
-import config.Configuration;
+
 import config.IConfiguration;
 import config.LogFactory;
 import engine.Job.JobState;
@@ -27,8 +27,8 @@ public class Server {
 	private static int hpQueueMaxSize;
 	
 	private static int lastServerCreatedID = 0; // For debug
+	public int serverID; // For debug
 	
-	private int serverID; // For debug
 	private JobsQueue lpQueue; 
 	private JobsQueue hpQueue;
 	private Job currentJob = null;
@@ -84,11 +84,11 @@ public class Server {
 		try {
 			jobsQueue.enqueue(job);
 			job.setState(JobState.IN_QUEUE);
-			log.debug(String.format("New job added to server %d with priority %s at %f", serverID, priority.toString(), localTime));
+			log.debug(String.format("New job[%d] added to server[%d] with priority %s at %f", job.jobID, serverID, priority.toString(), localTime));
 		} catch (QueueIsFullException e) {
 			job.setState(JobState.REJECTED);
 			statisticsCollector.jobRejected(job);
-			log.debug(String.format("Queue with priority %s in Server %d is full and rejected a job at %f.", priority.toString(), serverID, localTime));
+			log.debug(String.format("Queue with priority %s in Server[%d] is full and rejected a job[%d] at %f.", priority.toString(), serverID, job.jobID, localTime));
 		}
 	}
 	
@@ -130,7 +130,7 @@ public class Server {
 			{
 				localTime = currentJob.getDiscardTime();
 				currentJob = null;
-				log.debug(String.format("Running LP job was discarded at server %d at %f", serverID, localTime));
+				log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f", currentJob.jobID, serverID, localTime));
 			}
 			else if(!hpQueue.isEmpty())
 			{
@@ -138,8 +138,8 @@ public class Server {
 				currentJob.setState(JobState.IN_QUEUE);
 				lpQueue.addFirst(currentJob);
 				statisticsCollector.jobPreempted(currentJob);
+				log.debug(String.format("Running LP job[%d] was preempted at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
-				log.debug(String.format("Running LP job was preempted at server %d at %f", serverID, localTime));
 			}
 			else if(Double.compare(jobAproxEndTime, currentTime) < 0)
 			{
@@ -149,14 +149,14 @@ public class Server {
 				currentJob.setState(JobState.COMPLETED);
 				currentJob.getMirrorJob().discardJob(localTime);
 				statisticsCollector.jobCompleted(currentJob);
-				log.debug(String.format("Running LP job was completed successfully at server %d at %f", serverID, localTime));
+				log.debug(String.format("Running LP job[%d] was completed successfully at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
 			}
 			else
 			{
 				// The job still needs to run
 				localTime = currentTime;
-				log.debug(String.format("Server %d local time updated to %f", serverID, localTime));
+				log.debug(String.format("Server[%d] local time updated to %f", serverID, localTime));
 			}
 		}
 		else // a HP job
@@ -167,13 +167,13 @@ public class Server {
 				currentJob.setExecutionEndTime(localTime);
 				currentJob.setState(JobState.COMPLETED);
 				statisticsCollector.jobCompleted(currentJob);
+				log.debug(String.format("Running HP job[%d] was completed successfully at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
-				log.debug(String.format("Running HP job was completed successfully at server %d at %f", serverID, localTime));
 			}
 			else
 			{
 				localTime = currentTime;
-				log.debug(String.format("Server %d local time updated to %f", serverID, localTime));
+				log.debug(String.format("Server[%d] local time updated to %f", serverID, localTime));
 			}
 		}
 	}
@@ -191,11 +191,11 @@ public class Server {
 			}
 			else
 			{
-				log.debug(String.format("New HP job started on server %d at %f", serverID, localTime));
+				log.debug(String.format("New HP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob.setState(JobState.RUNNING);
 				currentJob.setExecutionStartTime(localTime);
 				// High priority, hence signaling the LQ before processing
-				currentJob.getMirrorJob().discardJob(localTime);	
+				currentJob.getMirrorJob().discardJob(localTime);
 			}
 		}
 		else if(!lpQueue.isEmpty())
@@ -211,13 +211,13 @@ public class Server {
 				currentJob = null;
 				return;
 			}
-			log.debug(String.format("New LP job started on server %d at %f", serverID, localTime));
+			log.debug(String.format("New LP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
 			currentJob.setState(JobState.RUNNING);
 			currentJob.setExecutionStartTime(localTime);
 		}
 		else
 		{
-			log.debug(String.format("No jobs to execute in server %d at %f hence progressing time to %f", serverID, localTime, currentTime));
+			log.debug(String.format("No jobs to execute in server[%d] at %f hence progressing time to %f", serverID, localTime, currentTime));
 			currentJob = null;
 			localTime = currentTime;
 		}	
