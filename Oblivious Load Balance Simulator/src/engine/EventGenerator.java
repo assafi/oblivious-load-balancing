@@ -93,7 +93,7 @@ public class EventGenerator {
 	 *         of servers activity, and initiate statistics collection.
 	 */
 	public Job finalJob() {
-		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH);
+		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH); //+ 10000.0
 	}
 
 }

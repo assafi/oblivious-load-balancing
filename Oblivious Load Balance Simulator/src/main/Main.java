@@ -42,7 +42,7 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		log.info("Load balance simulator invoked");
+		log.info(step() + "Load balance simulator invoked.");
 		if (args.length != NUM_EXPECTED_ARGUMENTS) {
 			usage("Wrong number of arguments");
 			System.exit(1);
@@ -57,7 +57,7 @@ public class Main {
 			System.exit(1);
 		}
 
-		log.info("Simulation concluded");
+		log.info(step() + "Simulation concluded.");
 	}
 
 	/**
@@ -119,15 +119,15 @@ public class Main {
 			// TODO: WRITE SUMMARY TO LOG HERE
 		}
 		sc.exportXML(xmlOutputFile);
-		log.info("Results are available in XML form at: \""
-				+ xmlOutputFile.getAbsolutePath() + "\"");
+		log.info(step() + "Exporting results, See \""
+				+ xmlOutputFile.getAbsolutePath() + "\" for details.");
 	}
 
 	/**
 	 * @return
 	 */
 	private static String step() {
-		return "Step " + steps++ + ") ";
+		return steps++ + ") ";
 	}
 
 	/**
