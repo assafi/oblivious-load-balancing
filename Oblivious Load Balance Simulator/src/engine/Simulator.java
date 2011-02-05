@@ -58,18 +58,14 @@ public class Simulator {
 			
 			Server primaryServer = servers[primaryServerIndex];
 			Server secondaryServer = servers[secondaryServerIndex];
-
-//			/*
-//			 * Advancing time before inserting new jobs
-//			 */
-//			for (Server server : servers) {
-//				server.currentTimeChanged(primaryJob.getCreationTime());
-//			}
-			
+	
+			/*
+			 * Need to push secondary job first, because the notification of a HP job to the server
+			 * is when the job is starting execution (when the LP job is not inserted to the queue) 
+			 */
+			secondaryServer.AddJob(secondaryJob, Priority.LOW);  
 			primaryServer.AddJob(primaryJob, Priority.HIGH);
-			secondaryServer.AddJob(secondaryJob, Priority.LOW);
 		}
 		
 	}
-
 }

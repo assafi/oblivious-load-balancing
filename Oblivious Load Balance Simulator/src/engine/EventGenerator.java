@@ -69,12 +69,11 @@ public class EventGenerator {
 		/*
 		 * According to the definition of exponential probability the result cannot be <=0 !
 		 */
-		assert(interval < EPSILON);
-		assert(jobLength < EPSILON);
+		assert(interval > EPSILON);
+		assert(jobLength > EPSILON);
 
 		clock += interval;
-//		Job nextJob = new Job(jobLength, clock);
-		return null;
+		return new Job(jobLength, clock);
 	}
 
 }
