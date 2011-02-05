@@ -164,6 +164,7 @@ public class StatisticsCollector {
 	
 	public void endCollection(double time){
 		totalRunTime = time;
+		updateGlobalCollector();
 	}
 	
 	public void updateGlobalCollector(){
