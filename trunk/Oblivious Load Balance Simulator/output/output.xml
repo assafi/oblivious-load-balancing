@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Statistics >
   <TotalJobs >
-    1938
+    1025
   </TotalJobs>
   <TotalJobHighPriority >
-    981
+    933
   </TotalJobHighPriority>
   <TotalJobLowPriority >
-    957
+    92
   </TotalJobLowPriority>
   <TotalCompletedJobs >
-    164
+    1000
   </TotalCompletedJobNum>
   <TotalCompletedJobHighPriority >
-    164
+    925
   </TotalCompletedJobHighPriority>
   <TotalCompletedJobLowPriority >
-    0
+    75
   </TotalCompletedJobLowPriority>
   <TotalPreemptedJobs >
-    1
+    11
   </TotalPreemptedJobs>
   <PreemptedPercentage >
     0.0
@@ -28,28 +28,28 @@
     0
   </TotalPreemptedJobHighPriority>
   <TotalPreemptedJobLowPriority >
-    1
+    11
   </TotalPreemptedJobLowPriority>
   <TotalRejectedJobs >
-    1773
+    14
   </TotalRejectedJobs>
   <RejectedPercentage >
     0.0
   </RejectedPercentage>
   <TotalRejectedJobHighPriority >
-    817
+    8
   </TotalRejectedJobHighPriority>
   <TotalRejectedJobLowPriority >
-    956
+    6
   </TotalRejectedJobLowPriority>
   <TotalJobsLength >
-    138
+    592
   </TotalJobsLength>
   <TotalJobsLengthHighPriority >
-    138
+    560
   </TotalJobsLengthHighPriority>
   <TotalJobsLengthLowPriority >
-    0
+    32
   </TotalJobsLengthLowPriority>
   <AverageJobLength >
     0.0

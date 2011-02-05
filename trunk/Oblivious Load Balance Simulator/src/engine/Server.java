@@ -49,9 +49,9 @@ public class Server {
 		double dFactor = Server.config.getDistributionFactor();
 		hpQueueMaxSize = (int)Math.round(totalSlots * dFactor);
 		lpQueueMaxSize = totalSlots - hpQueueMaxSize;
-		log.info("Server configuration was set.");
-		log.info(String.format("Max size of HP Queue is %d", hpQueueMaxSize));
-		log.info(String.format("Max size of LP Queue is %d", lpQueueMaxSize));
+		log.debug("Server configuration was set.");
+		log.debug(String.format("Max size of HP Queue is %d", hpQueueMaxSize));
+		log.debug(String.format("Max size of LP Queue is %d", lpQueueMaxSize));
 	}
 	
 	public Server() {
@@ -129,8 +129,8 @@ public class Server {
 			if(currentJob.getState() == JobState.DISCARDED)
 			{
 				localTime = currentJob.getDiscardTime();
-				currentJob = null;
 				log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f", currentJob.jobID, serverID, localTime));
+				currentJob = null;
 			}
 			else if(!hpQueue.isEmpty())
 			{
