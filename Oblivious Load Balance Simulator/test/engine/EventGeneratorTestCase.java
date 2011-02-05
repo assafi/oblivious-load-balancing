@@ -10,6 +10,9 @@
 package engine;
 
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,6 +25,7 @@ import config.stubs.ConfigurationStub;
  */
 public class EventGeneratorTestCase {
 
+	private static final double EPSILON = 1e-8;
 	private static ConfigurationStub config;
 	
 	/**
@@ -53,5 +57,22 @@ public class EventGeneratorTestCase {
 	public void testJobCreationBadLoad() {
 		config.load = 0.0;
 		new EventGenerator(config);
+	}
+	
+	@Test
+	public void testJobCreation() {
+		EventGenerator eGen = new EventGenerator(config);
+		assertFalse(eGen.done());
+		
+		int counter = 1000;
+		while (counter-- != 0) {
+			assertFalse(eGen.done());
+			Job aJob = eGen.nextJob();
+			assertTrue(aJob.getJobLength() > EPSILON);
+		}
+		
+		assertTrue(eGen.done());
+		Job finalJob = eGen.nextJob();
+		assertTrue(finalJob.getJobLength() < EPSILON);
 	}
 }

@@ -16,40 +16,44 @@ import config.IConfiguration;
 
 /**
  * @author Assaf Israel
- *
+ * 
  */
 public class EventGenerator {
 
 	private static final double EPSILON = 1e-8;
 	private long jobsRemained;
 	private double clock = 0.0;
-	
+
 	private final double JOB_MEAN_LENGTH = 1.0;
 	private double averageArrivalRate;
-	
-	private RandomData intervalRandomizer = new RandomDataImpl(); 
+
+	private RandomData intervalRandomizer = new RandomDataImpl();
 	private RandomData lengthRandomizer = new RandomDataImpl();
-	
+
 	/**
 	 * @param config
 	 */
 	public EventGenerator(IConfiguration config) {
 		this.jobsRemained = config.getNumJobs();
-		
+
 		if (jobsRemained < 1) {
-			throw new IllegalArgumentException("Number of jobs must be positive.");
+			throw new IllegalArgumentException(
+					"Number of jobs must be positive.");
 		}
-		
+
 		if (config.getNumServers() < 2) {
-			throw new IllegalArgumentException("Number of servers must exceed 1.");
+			throw new IllegalArgumentException(
+					"Number of servers must exceed 1.");
 		}
 
 		if (config.getLoad() <= 0.0 || config.getLoad() > 1.0) {
-			throw new IllegalArgumentException("Load must be in the range (0,1].");
+			throw new IllegalArgumentException(
+					"Load must be in the range (0,1].");
 		}
-		
+
 		// Normalized according to the number of servers
-		this.averageArrivalRate = 1/(double)config.getNumServers() * config.getLoad(); 
+		this.averageArrivalRate = 1 / (double) config.getNumServers()
+				* config.getLoad();
 	}
 
 	/**
@@ -63,17 +67,33 @@ public class EventGenerator {
 	 * @return
 	 */
 	public Job nextJob() {
-		double interval = intervalRandomizer.nextExponential(averageArrivalRate);
-		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
+		if (jobsRemained == 0) {
+			return finalJob();
+		}
+		jobsRemained--;
 		
+		double interval = intervalRandomizer
+				.nextExponential(averageArrivalRate);
+		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
+
 		/*
-		 * According to the definition of exponential probability the result cannot be <=0 !
+		 * According to the definition of exponential probability the result
+		 * cannot be <=0 !
 		 */
-		assert(interval > EPSILON);
-		assert(jobLength > EPSILON);
+		assert (interval > EPSILON);
+		assert (jobLength > EPSILON);
 
 		clock += interval;
 		return new Job(jobLength, clock);
+	}
+
+	/**
+	 * @return The final Job, with creation time of (current clock + 2 * job
+	 *         mean length) and length zero. This job indicates the termination
+	 *         of servers activity, and initiate statistics collection.
+	 */
+	public Job finalJob() {
+		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH);
 	}
 
 }

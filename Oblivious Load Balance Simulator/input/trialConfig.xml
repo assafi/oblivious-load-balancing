@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 	<servers-config>
-		<count>1</count>
-		<queue-policy policy="finite" dFactor="0.5">10</queue-policy>
+		<count>20</count>
+		<queue-policy policy="finite" dFactor="0.5">100</queue-policy>
 	</servers-config>
 	<jobs-config>
 		<load>0.2</load>

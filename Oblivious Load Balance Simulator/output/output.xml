@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Statistics >
+  <TotalJobs >
+    1938
+  </TotalJobs>
+  <TotalJobHighPriority >
+    981
+  </TotalJobHighPriority>
+  <TotalJobLowPriority >
+    957
+  </TotalJobLowPriority>
+  <TotalCompletedJobs >
+    164
+  </TotalCompletedJobNum>
+  <TotalCompletedJobHighPriority >
+    164
+  </TotalCompletedJobHighPriority>
+  <TotalCompletedJobLowPriority >
+    0
+  </TotalCompletedJobLowPriority>
+  <TotalPreemptedJobs >
+    1
+  </TotalPreemptedJobs>
+  <PreemptedPercentage >
+    0.0
+  </PreemptedPercentage>
+  <TotalPreemptedJobHighPriority >
+    0
+  </TotalPreemptedJobHighPriority>
+  <TotalPreemptedJobLowPriority >
+    1
+  </TotalPreemptedJobLowPriority>
+  <TotalRejectedJobs >
+    1773
+  </TotalRejectedJobs>
+  <RejectedPercentage >
+    0.0
+  </RejectedPercentage>
+  <TotalRejectedJobHighPriority >
+    817
+  </TotalRejectedJobHighPriority>
+  <TotalRejectedJobLowPriority >
+    956
+  </TotalRejectedJobLowPriority>
+  <TotalJobsLength >
+    138
+  </TotalJobsLength>
+  <TotalJobsLengthHighPriority >
+    138
+  </TotalJobsLengthHighPriority>
+  <TotalJobsLengthLowPriority >
+    0
+  </TotalJobsLengthLowPriority>
+  <AverageJobLength >
+    0.0
+  </AverageJobLength>
+  <AverageJobLengthHighPriority >
+    0.0
+  </AverageJobLengthHighPriority>
+  <AverageJobLengthLowPriority >
+    0.0
+  </AverageJobLengthLowPriority>
+  <HighPriorityQueueMaxLength >
+    0
+  </HighPriorityQueueMaxLength>
+  <HighPriorityQueueAverageLength >
+    NaN
+  </HighPriorityQueueAverageLength>
+  <LowPriorityQueueMaxLength >
+    0
+  </LowPriorityQueueMaxLength>
+  <LowPriorityQueueAverageLength >
+    NaN
+  </LowPriorityQueueAverageLength>
+</Statistics>
