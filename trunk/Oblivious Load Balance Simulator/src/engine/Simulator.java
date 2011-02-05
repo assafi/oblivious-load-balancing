@@ -11,20 +11,25 @@ package engine;
 
 import org.apache.commons.math.random.RandomData;
 import org.apache.commons.math.random.RandomDataImpl;
+import org.apache.log4j.Logger;
+
+import config.LogFactory;
 
 import engine.Server.Priority;
 
 /**
  * @author Assaf Israel
- *
+ * 
  */
 public class Simulator {
 
+	private static Logger log = LogFactory.getLog(Simulator.class);
+	
 	private EventGenerator eGen;
 	private Server[] servers;
-	
-	private RandomData indexRandomizer = new RandomDataImpl(); 
-	
+
+	private RandomData indexRandomizer = new RandomDataImpl();
+
 	/**
 	 * @param eGen
 	 * @param servers
@@ -38,34 +43,49 @@ public class Simulator {
 	 * 
 	 */
 	public void execute() {
-	
+
+		int counter = 0;
 		while (!eGen.done()) {
+			log.debug("Job #" + counter++);
 			Job primaryJob = eGen.nextJob();
-			Job secondaryJob = primaryJob.clone(); 
-			
+			Job secondaryJob = primaryJob.clone();
+
 			primaryJob.setMirrorJob(secondaryJob);
 			secondaryJob.setMirrorJob(primaryJob);
-			
-			int primaryServerIndex = indexRandomizer.nextInt(0, servers.length - 1);
-			int secondaryServerIndex = indexRandomizer.nextInt(0, servers.length - 1);
-			
+
+			int primaryServerIndex = indexRandomizer.nextInt(0,
+					servers.length - 1);
+			int secondaryServerIndex = indexRandomizer.nextInt(0,
+					servers.length - 1);
+
 			/*
-			 * Making sure the primary server is not the same as the secondary one
+			 * Making sure the primary server is not the same as the secondary
+			 * one
 			 */
 			while (primaryServerIndex == secondaryServerIndex) {
-				secondaryServerIndex = indexRandomizer.nextInt(0, servers.length - 1);
+				secondaryServerIndex = indexRandomizer.nextInt(0,
+						servers.length - 1);
 			}
-			
+
 			Server primaryServer = servers[primaryServerIndex];
 			Server secondaryServer = servers[secondaryServerIndex];
-	
+
 			/*
-			 * Need to push secondary job first, because the notification of a HP job to the server
-			 * is when the job is starting execution (when the LP job is not inserted to the queue) 
+			 * Need to push secondary job first, because the notification of a
+			 * HP job to the server is when the job is starting execution (when
+			 * the LP job is not inserted to the queue)
 			 */
-			secondaryServer.AddJob(secondaryJob, Priority.LOW);  
+			secondaryServer.AddJob(secondaryJob, Priority.LOW);
 			primaryServer.AddJob(primaryJob, Priority.HIGH);
 		}
-		
+
+		Job finalJob = eGen.finalJob();
+		for (Server server : servers) {
+			/*
+			 * In order to avoid preemption of currently executing LP jobs the
+			 * final job is also of low priority.
+			 */
+			server.AddJob(finalJob, Priority.LOW);
+		}
 	}
 }
