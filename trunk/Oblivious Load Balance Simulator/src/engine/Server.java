@@ -182,6 +182,7 @@ public class Server {
 		if(!hpQueue.isEmpty())
 		{
 			currentJob = hpQueue.dequeue();
+			currentJob.setState(JobState.RUNNING);
 			// Giving the mirror server a chance to execute this job as LP before
 			// doing it in this server as HP.
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
@@ -192,7 +193,6 @@ public class Server {
 			else
 			{
 				log.debug(String.format("New HP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
-				currentJob.setState(JobState.RUNNING);
 				currentJob.setExecutionStartTime(localTime);
 				// High priority, hence signaling the LQ before processing
 				currentJob.getMirrorJob().discardJob(localTime);
@@ -201,6 +201,7 @@ public class Server {
 		else if(!lpQueue.isEmpty())
 		{
 			currentJob = lpQueue.dequeue();
+			currentJob.setState(JobState.RUNNING);
 			
 			// It is possible that the mirror server may finish the job as HP before this server does
 			// hence we are updating that server's local time.
@@ -212,7 +213,6 @@ public class Server {
 				return;
 			}
 			log.debug(String.format("New LP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
-			currentJob.setState(JobState.RUNNING);
 			currentJob.setExecutionStartTime(localTime);
 		}
 		else
