@@ -216,6 +216,7 @@ public class StatisticsCollector {
 	}
 	
 	public void exportXML(File xmlFile){
+		//TODO change the names according to the email of amir and make the xml to 3 parts total, LQ, HQ
 		XmlPrinter xmlPrinter= new XmlPrinter(xmlFile);
 		AttributesImpl atts = new AttributesImpl();
 		
