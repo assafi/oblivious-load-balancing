@@ -186,7 +186,7 @@ public class Server {
 			// Giving the mirror server a chance to execute this job as LP before
 			// doing it in this server as HP.
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
-			if(currentJob.getState() == JobState.DISCARDED)
+			if((currentJob == null) || (currentJob.getState() == JobState.DISCARDED))
 			{
 				currentJob = null;
 			}
