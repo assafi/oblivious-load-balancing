@@ -52,8 +52,8 @@ public class EventGenerator {
 		}
 
 		// Normalized according to the number of servers
-		this.averageArrivalRate = 1 / (double) config.getNumServers()
-				* config.getLoad();
+		this.averageArrivalRate = 
+			1 / (config.getNumServers() * config.getLoad());
 	}
 
 	/**
@@ -71,7 +71,7 @@ public class EventGenerator {
 			return finalJob();
 		}
 		jobsRemained--;
-		
+
 		double interval = intervalRandomizer
 				.nextExponential(averageArrivalRate);
 		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
@@ -93,7 +93,7 @@ public class EventGenerator {
 	 *         of servers activity, and initiate statistics collection.
 	 */
 	public Job finalJob() {
-		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH); //+ 10000.0
+		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH); // + 10000.0
 	}
 
 }
