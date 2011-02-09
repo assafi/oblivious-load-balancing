@@ -207,7 +207,7 @@ public class Server {
 			// hence we are updating that server's local time.
 			double safeUpdateTime = Math.min(currentTime, localTime + currentJob.getJobLength());
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
-			if(currentJob.getState() == JobState.DISCARDED)
+			if(currentJob == null || currentJob.getState() == JobState.DISCARDED)
 			{
 				currentJob = null;
 				return;
