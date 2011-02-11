@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<servers-config>
+		<count>20</count>
+		<queue-policy policy="finite" dFactor="0.9">10</queue-policy>
+	</servers-config>
+	<jobs-config>
+		<load>0.98</load>
+		<count>10000</count>
+	</jobs-config>
+</configuration>
