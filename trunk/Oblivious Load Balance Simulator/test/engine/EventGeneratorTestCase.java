@@ -37,7 +37,7 @@ public class EventGeneratorTestCase {
 		config.numJobs = 1000;
 		config.numServers = 20;
 		config.distrbutionFactor = 0.3;
-		config.load = 0.8;
+		config.load = 1;
 		config.policy = QueuePolicy.FINITE;
 	}
 
@@ -68,6 +68,7 @@ public class EventGeneratorTestCase {
 		while (counter-- != 0) {
 			assertFalse(eGen.done());
 			Job aJob = eGen.nextJob();
+			System.out.println("Length: " + aJob.getJobLength() + ", Creation time: " + aJob.getCreationTime());
 			assertTrue(aJob.getJobLength() > EPSILON);
 		}
 		

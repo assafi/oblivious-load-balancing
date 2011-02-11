@@ -10,6 +10,7 @@
 package config;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -25,7 +26,7 @@ import engine.StatisticsCollector;
  */
 public class StatisticsTestCase {
 
-	private static File xmlFile = new File("testStatFile.xml");;
+	private static File outputXMLFile = new File("testStatFile.xml");;
 	
 	/**
 	 * @throws java.lang.Exception
@@ -53,20 +54,26 @@ public class StatisticsTestCase {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		if (xmlFile.exists()) {
-			xmlFile.delete();
+		if (outputXMLFile.exists()) {
+			outputXMLFile.delete();
 		}
 	}
 
 	/**
 	 * Test method for {@link engine.StatisticsCollector#exportXML(java.io.File)}.
+	 * @throws IOException 
 	 */
 	@Test
-	public void testExportXML() {
+	public void testExportXML() throws IOException {
 		
+		ConfigurationTestCase.createTempXML();
 		StatisticsCollector tmp = new StatisticsCollector();
 		
-		tmp.exportXML(xmlFile);
+		Configuration config = Configuration.getInstance();
+		config.parseFile(ConfigurationTestCase.xmlFile.getAbsolutePath());
+		
+		tmp.exportXML(outputXMLFile,config);
+		ConfigurationTestCase.destroyTempXML();
 		
 	}
 

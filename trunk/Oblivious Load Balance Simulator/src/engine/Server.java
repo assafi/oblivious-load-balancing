@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 
 import config.IConfiguration;
 import config.LogFactory;
-import engine.Job.JobState;
+import config.QueuePolicy;
 import exceptions.QueueIsFullException;
 
 /**
@@ -23,8 +23,8 @@ import exceptions.QueueIsFullException;
 public class Server {
 	private static Logger log = LogFactory.getLog(Server.class);
 	private static IConfiguration config;
-	private static int lpQueueMaxSize;
-	private static int hpQueueMaxSize;
+	private static long lpQueueMaxSize;
+	private static long hpQueueMaxSize;
 	
 	private static int lastServerCreatedID = 0; // For debug
 	public int serverID; // For debug
@@ -45,13 +45,19 @@ public class Server {
 	public static void SetServersConfiguration(IConfiguration config)
 	{
 		Server.config = config;
-		int totalSlots = Server.config.getMemorySize();
-		double dFactor = Server.config.getDistributionFactor();
-		hpQueueMaxSize = (int)Math.round(totalSlots * dFactor);
-		lpQueueMaxSize = totalSlots - hpQueueMaxSize;
+		
+		if (QueuePolicy.FINITE.equals(config.getPolicy())) {
+			int totalSlots = Server.config.getMemorySize();
+			double dFactor = Server.config.getDistributionFactor();
+			hpQueueMaxSize = (int)Math.round(totalSlots * dFactor);
+			lpQueueMaxSize = totalSlots - hpQueueMaxSize;
+			log.debug(String.format("Max size of HP Queue is %d", hpQueueMaxSize));
+			log.debug(String.format("Max size of LP Queue is %d", lpQueueMaxSize));
+		} else {
+			hpQueueMaxSize = Long.MAX_VALUE;
+			lpQueueMaxSize = Long.MAX_VALUE;
+		}
 		log.debug("Server configuration was set.");
-		log.debug(String.format("Max size of HP Queue is %d", hpQueueMaxSize));
-		log.debug(String.format("Max size of LP Queue is %d", lpQueueMaxSize));
 	}
 	
 	public Server() {
@@ -86,8 +92,13 @@ public class Server {
 			job.setState(JobState.IN_QUEUE);
 			log.debug(String.format("New job[%d] added to server[%d] with priority %s at %f", job.jobID, serverID, priority.toString(), localTime));
 		} catch (QueueIsFullException e) {
-			job.setState(JobState.REJECTED);
-			statisticsCollector.jobRejected(job);
+			job.setState(JobState.DROPPED_ON_FULL_QUEUE);
+			if (job.getMirrorJob().getState().isCompletionState()) {
+				/*
+				 * Both jobs are completed/discarded and there for we can report Job termination 
+				 */
+				statisticsCollector.reportTermination(job);
+			}
 			log.debug(String.format("Queue with priority %s in Server[%d] is full and rejected a job[%d] at %f.", priority.toString(), serverID, job.jobID, localTime));
 		}
 	}
@@ -100,6 +111,7 @@ public class Server {
 
 	public void currentTimeChanged(double currentTime)
 	{
+		log.debug(String.format("Time at server[%d] will be advanced to %f", serverID, currentTime));
 		if(Double.compare(localTime, currentTime) >= 0)
 		{
 			return;
@@ -119,16 +131,19 @@ public class Server {
 	}
 
 	private void handleRunningJob(double currentTime) {
-		double jobAproxEndTime = currentJob.getExecutionStartTime() + currentJob.getJobLength();
+		double jobAproxEndTime = getNextJobTerminationTime(currentJob);
+		
 		if(currentJob.associatedQueue.getQueuePriority() == Priority.LOW)
 		{
 			// It is possible that the mirror server may finish the job as HP before this server does
 			// hence we are updating that server's local time.
 			double safeUpdateTime = Math.min(currentTime, jobAproxEndTime);
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
-			if(currentJob.getState() == JobState.DISCARDED)
+			if(currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 			{
-				localTime = currentJob.getDiscardTime();
+				if (Double.compare(localTime, currentJob.getDiscardTime()) < 0) {
+					localTime = currentJob.getDiscardTime();
+				}
 				log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
 			}
@@ -136,19 +151,31 @@ public class Server {
 			{
 				// putting the LP job back in the queue
 				currentJob.setState(JobState.IN_QUEUE);
-				lpQueue.addFirst(currentJob);
-				statisticsCollector.jobPreempted(currentJob);
-				log.debug(String.format("Running LP job[%d] was preempted at server[%d] at %f", currentJob.jobID, serverID, localTime));
+				try {
+					lpQueue.addFirst(currentJob);
+					log.debug(String.format("Running LP job[%d] was preempted at server[%d] at %f", currentJob.jobID, serverID, localTime));
+				} catch (QueueIsFullException e) {
+					log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f because it was preempted and the LP queue is full", currentJob.jobID, serverID, localTime));
+					currentJob.setState(JobState.DROPPED_ON_FULL_QUEUE);
+					if (currentJob.getMirrorJob().getState().equals(JobState.DROPPED_ON_FULL_QUEUE)) {
+						/*
+						 * In case the HP job has been discarded the Job is considered terminated.
+						 */
+						statisticsCollector.reportTermination(currentJob);
+					}
+				}
+				localTime = currentTime;
 				currentJob = null;
 			}
-			else if(Double.compare(jobAproxEndTime, currentTime) < 0)
+			else if(Double.compare(jobAproxEndTime, currentTime) < 0 && 
+					Double.compare(jobAproxEndTime,currentJob.getExecutionStartTime() + currentJob.getJobLength()) == 0)
 			{
 				// The LP job completed successfully
 				localTime = jobAproxEndTime;
 				currentJob.setExecutionEndTime(localTime);
 				currentJob.setState(JobState.COMPLETED);
 				currentJob.getMirrorJob().discardJob(localTime);
-				statisticsCollector.jobCompleted(currentJob);
+				statisticsCollector.reportTermination(currentJob);
 				log.debug(String.format("Running LP job[%d] was completed successfully at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
 			}
@@ -166,7 +193,7 @@ public class Server {
 				localTime = jobAproxEndTime;
 				currentJob.setExecutionEndTime(localTime);
 				currentJob.setState(JobState.COMPLETED);
-				statisticsCollector.jobCompleted(currentJob);
+				statisticsCollector.reportTermination(currentJob);
 				log.debug(String.format("Running HP job[%d] was completed successfully at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
 			}
@@ -178,15 +205,37 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * @param currentJob
+	 * @return
+	 */
+	private double getNextJobTerminationTime(Job currentJob) {
+		double normalEndTime = currentJob.getExecutionStartTime() + currentJob.getJobLength();
+		if (currentJob.associatedQueue.getQueuePriority().equals(Priority.HIGH)) {
+			/*
+			 * local LP job cannot stop HP job
+			 */
+			return normalEndTime;
+		}
+		double nextHPJobStartTime;
+		if (!hpQueue.isEmpty() && 
+				normalEndTime > (nextHPJobStartTime = hpQueue.peek().getCreationTime())) {
+			return nextHPJobStartTime;
+		}
+		return normalEndTime;
+	}
+
 	private void handleNextJob(double currentTime) {
-		if(!hpQueue.isEmpty())
+		if(!hpQueue.isEmpty() && 
+			(lpQueue.isEmpty() || 
+			hpQueue.peek().getCreationTime() <= lpQueue.peek().getCreationTime()))
 		{
 			currentJob = hpQueue.dequeue();
 			currentJob.setState(JobState.RUNNING);
 			// Giving the mirror server a chance to execute this job as LP before
 			// doing it in this server as HP.
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
-			if((currentJob == null) || (currentJob.getState() == JobState.DISCARDED))
+			if((currentJob == null) || (currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION))
 			{
 				currentJob = null;
 			}
@@ -205,15 +254,17 @@ public class Server {
 			
 			// It is possible that the mirror server may finish the job as HP before this server does
 			// hence we are updating that server's local time.
-			double safeUpdateTime = Math.min(currentTime, localTime + currentJob.getJobLength());
+			currentJob.setExecutionStartTime(localTime);
+			double safeUpdateTime = Math.min(currentTime, getNextJobTerminationTime(currentJob));
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
-			if(currentJob == null || currentJob.getState() == JobState.DISCARDED)
+			if(currentJob == null || currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 			{
 				currentJob = null;
 				return;
 			}
 			log.debug(String.format("New LP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
 			currentJob.setExecutionStartTime(localTime);
+//			localTime = safeUpdateTime; // ???
 		}
 		else
 		{

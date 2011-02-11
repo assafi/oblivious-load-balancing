@@ -15,11 +15,11 @@ import config.LogFactory;
 
 /**
  * @author Asi Bross
- *
+ * 
  */
 public class Job {
 	private static Logger log = LogFactory.getLog(Job.class);
-	
+
 	private Job mirrorJob;
 	private double jobLength;
 	private double jobCreationTime;
@@ -27,104 +27,100 @@ public class Job {
 	private double executionEndTime;
 	private double discardTime;
 	private JobState state;
-	
+
 	private static int lastJobCreatedID = 0; // For debug
 	public int jobID; // For debug
-	
-	
-	public enum JobState { INITIAL, IN_QUEUE, RUNNING, COMPLETED, DISCARDED, PREEMPTED, REJECTED }
 
 	// The queue this job belongs to.
 	public JobsQueue associatedQueue;
 
 	// The server this job belongs to.
 	public Server associatedServer;
-	
-	public Job(double jobLength, double creationTime)
-	{
+
+	public Job(double jobLength, double creationTime) {
 		this(null, jobLength, creationTime);
 	}
-	
+
 	@Override
 	protected Job clone() {
 		return new Job(this.mirrorJob, this.jobLength, this.jobCreationTime);
 	}
 
-	public Job(Job mirrorJob, double jobLength, double creationTime)
-	{
+	public Job(Job mirrorJob, double jobLength, double creationTime) {
 		this.mirrorJob = mirrorJob;
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
 		this.state = JobState.INITIAL;
 		jobID = ++lastJobCreatedID;
 	}
-	
-	public Job getMirrorJob()
-	{
+
+	public Job getMirrorJob() {
 		return mirrorJob;
 	}
-	
-	public void setMirrorJob(Job mirrorJob)
-	{
+
+	public void setMirrorJob(Job mirrorJob) {
 		this.mirrorJob = mirrorJob;
 	}
 
-	public double getJobLength()
-	{
+	public double getJobLength() {
 		return jobLength;
 	}
-	
-	public double getCreationTime()
-	{
+
+	public double getCreationTime() {
 		return jobCreationTime;
 	}
-	
-	public JobState getState()
-	{
+
+	public JobState getState() {
 		return state;
 	}
-	
-	public void setState(JobState state)
-	{
+
+	public void setState(JobState state) {
 		this.state = state;
 	}
-	
-	public void discardJob(double currentTime)
-	{
+
+	public void discardJob(double currentTime) {
 		switch (state) {
 		case COMPLETED:
-			throw new RuntimeException("This shouldn't have happened, it is not possible for a job to complete while its mirror job was already completed");
+			throw new RuntimeException(
+					"This shouldn't have happened, it is not possible for a job to complete while its mirror job was already completed");
 		case IN_QUEUE:
-			// Alert the queue that one of the jobs he has was discarded.
+			// Alert the queue that one of the jobs was discarded.
 			associatedQueue.alertJobDiscarded();
+			state = JobState.DROPPED_ON_SIBLING_COMPLETION;
+			break;
 		case RUNNING:
-			discardTime = currentTime;
-			state = JobState.DISCARDED;
+			if (Double.compare(currentTime,associatedServer.getLocalTime()) > 0) {
+				discardTime = currentTime;
+			} else {
+				discardTime = associatedServer.getLocalTime();
+			}
+			state = JobState.DROPPED_ON_SIBLING_COMPLETION;
 			break;
 		default:
 			return;
 		}
-		log.debug(String.format("Job[%d] with priority %s discarded at server %d", jobID, associatedQueue.getQueuePriority().name(), associatedServer.serverID));
+		log.debug(String.format(
+				"Job[%d] with priority %s discarded at server %d at %f", jobID,
+				associatedQueue.getQueuePriority().name(),
+				associatedServer.serverID,currentTime));
 	}
-	
-	public double getExecutionEndTime()
-	{
+
+	public double getExecutionEndTime() {
 		return executionEndTime;
 	}
-	
-	public void setExecutionEndTime(double time)
-	{
+
+	public void setExecutionEndTime(double time) {
 		executionEndTime = time;
 	}
 
 	public void setExecutionStartTime(double time) {
 		this.executionStartTime = time;
 	}
-	
+
 	public double getExecutionStartTime() {
 		return executionStartTime;
 	}
-	
+
 	public double getDiscardTime() {
 		return discardTime;
 	}
@@ -132,5 +128,5 @@ public class Job {
 	public void setDiscardTime(double discardTime) {
 		this.discardTime = discardTime;
 	}
-	
+
 }

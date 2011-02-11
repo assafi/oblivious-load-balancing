@@ -41,7 +41,7 @@ public class ConfigurationTestCase {
 		"		<count>1000</count>\n" +	
 		"	</jobs-config>\n" +
 		"</configuration>";
-	private static File xmlFile = null;
+	public static File xmlFile = null;
 	
 	@BeforeClass
 	public static void createTempXML() throws IOException {
