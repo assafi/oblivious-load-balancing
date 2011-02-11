@@ -11,447 +11,311 @@ package engine;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
+
+import misc.XmlPrinter;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import misc.XmlPrinter;
+import config.IConfiguration;
+import config.QueuePolicy;
 
 import engine.Server.Priority;
 
 /**
- * @author Eli Nazarov
- *
+ * @author Eli Nazarov, Assaf Israel
+ * 
  */
 public class StatisticsCollector {
+
+	/**
+	 * 
+	 */
+	private static final String TERMINATION_STATISTIC_TAG = "TerminationStatistic";
+	private static final String QUEUE_SETUP_TAG = "QueueSetup";
+	private static final String LOAD_TAG = "Load";
+	private static final String DISTRIBUTION_FACTOR_TAG = "DistributionFactor";
+	private static final String MEMORY_SIZE_TAG = "MemorySize";
+	private static final String SERVER_COUNT_TAG = "ServerCount";
+	private static final String JOBS_COUNT_TAG = "JobsCount";
+	private static final String MAX_QUEUE_LENGTH_TAG = "MaxQueueLength";
+	private static final String AVERAGE_QUEUE_LENGTH_TAG = "AverageQueueLength";
+	private static final String LOW_PRIORITY_TAG = "LowPriority";
+	private static final String HIGH_PRIORITY_TAG = "HighPriority";
+	private static final String SUMMARY_TAG = "Summary";
+	private static final String SIMULATION_TAG = "Simulation";
 	
-	private static StatisticsCollector instance;
+	private static final int PERCISION = 8;
 	
-	private int totalJobNum = 0; // The total number of jobs (Completed, preempted and rejected) both in HQ and LQ
-	private int totalJobHQ = 0; // The total number of jobs in HQ (Completed, preempted and rejected)
-	private int totalJobLQ = 0; // The total number of jobs in LQ (Completed, preempted and rejected)
-	
-	private int totalCompletedJobNum = 0; // The total number of completed jobs
-	private int totalCompletedJobHQ = 0; // The total number of completed jobs in HQ 
-	private int totalCompletedJobLQ = 0; // The total number of completed jobs in LQ
-	
-	private int totalPreemptedJobNum = 0; // The total number of preempted jobs due to sibling job completion
-	private int totalPreemptedJobHQ = 0; // The total number of preempted jobs in HQ 
-	private int totalPreemptedJobLQ = 0; // The total number of preempted jobs in LQ
-	 
-	
-	private int totalRejectedJobNum = 0; // The total number of rejected jobs due to full queue
-	private int totalRejectedJobHQ = 0; // The total number of rejected jobs in HQ 
-	private int totalRejectedJobLQ = 0; // The total number of rejected jobs in LQ
-	
-	private int totalJobsLength = 0; // The total length of all completed jobs
-	private int totalJobsLengthHQ = 0; // The total length of all completed jobs in HQ
-	private int totalJobsLengthLQ = 0; // The total length of all completed jobs in LQ
-	
-	private HashMap<Integer, Double> hQLength = new HashMap<Integer, Double>(); // Map between the high priority queue length and the time the queue was in this length    
+	private static int serversCount = 0;
+
+	private static StatisticsCollector instance = new StatisticsCollector();
+
+	private Map<JobCompletionState, Long> stats = new HashMap<JobCompletionState, Long>();
+	private static Map<JobCompletionState, Double> statsPerc = new HashMap<JobCompletionState, Double>();
+
+	/*
+	 * Map between the high priority queue length and the time the queue was in this length
+	 */
+	private HashMap<Long, Double> lengthTimeHPQueue = new HashMap<Long, Double>();
 	private double lastHQUpdateTime = 0;
-	private int lastUpdateHQLen = 0;
-	
-	private HashMap<Integer, Double> lQLength = new HashMap<Integer, Double>(); // Map between the low priority queue length and the time the queue was in this length
+	private long lastUpdateHQLen = 0;
+
+	/*
+	 * Map between the low priority queue length and the time the queue was in this length
+	 */
+	private HashMap<Long, Double> lengthTimeLPQueue = new HashMap<Long, Double>(); 
 	private double lastLQUpdateTime = 0;
-	private int lastUpdateLQLen = 0;
-	
-	private double totalRunTime = 0;
-	
-	public StatisticsCollector(){
-		
+	private long lastUpdateLQLen = 0;
+
+	public StatisticsCollector() {
 	}
-	
-	public static StatisticsCollector getGlobalCollector(){
-		if (null == instance){
-			instance = new StatisticsCollector();
-		}
-		
+
+	public static StatisticsCollector getGlobalCollector() {
 		return instance;
 	}
-	
-	
-	public void jobCompleted(Job job){
-		
-		if(job.getJobLength() == 0){ // Job that states  that the run is over
+
+	public void reportTermination(Job job) {
+
+		if (job.getJobLength() == 0) { // Job that states that the run is over
 			return;
 		}
-		
-		totalJobNum++;
-		totalCompletedJobNum++;
-		totalJobsLength += job.getJobLength();
-		
-		switch(job.associatedQueue.getQueuePriority()){
+
+		Job siblingJob = job.getMirrorJob();
+		switch (job.associatedQueue.getQueuePriority()) {
 		case HIGH:
-			totalJobHQ++;
-			totalCompletedJobHQ++;
-			totalJobsLengthHQ += job.getJobLength();
+			pushStat(job.getState(), siblingJob.getState());
 			break;
-			
 		case LOW:
-			totalJobLQ++;
-			totalCompletedJobLQ++;
-			totalJobsLengthLQ += job.getJobLength();
+			pushStat(siblingJob.getState(), job.getState());
 			break;
 		}
 	}
-	
-	public void jobRejected(Job job){
-		if(job.getJobLength() == 0)
+
+	/**
+	 * @param HPCompState
+	 *            HP job completion state
+	 * @param LPCompState
+	 *            LP job completion state
+	 */
+	private void pushStat(JobState HPCompState, JobState LPCompState) {
+		
+		JobCompletionState jcs = new JobCompletionState(HPCompState,
+				LPCompState);
+		if (!stats.containsKey(jcs)) {
+			stats.put(jcs, (long)1);
 			return;
-		
-		totalJobNum++;
-		totalRejectedJobNum++;
-		
-		switch(job.associatedQueue.getQueuePriority()){
-		case HIGH:
-			totalJobHQ++;
-			totalRejectedJobHQ++;
-			break;
-			
-		case LOW:
-			totalJobLQ++;
-			totalRejectedJobLQ++;
-			break;
+		} else {
+			stats.put(jcs, stats.remove(jcs) + 1);
 		}
 	}
-	
-	public void jobPreempted(Job job){
-		if(job.getJobLength() == 0)
-			return;
-		
-		totalJobNum++;
-		totalPreemptedJobNum++;
-		
-		switch(job.associatedQueue.getQueuePriority()){
-		case HIGH:
-			totalJobHQ++;
-			totalPreemptedJobHQ++;
-			break;
-			
-		case LOW:
-			totalJobLQ++;
-			totalPreemptedJobLQ++;
-			break;
-		}
-	}
-	
-	public void updateQueueLength(Priority priority, int length, double localTime){
-		
+
+	public void updateQueueLength(Priority priority, long length,
+			double localTime) {
+
 		double lenTime = 0;
-		switch(priority){
+		
+		switch (priority) {
 		case HIGH:
-			if(hQLength.containsKey(lastUpdateHQLen)){
-				lenTime = hQLength.get(lastUpdateHQLen);
-				hQLength.remove(lastUpdateHQLen);
+			if (lengthTimeHPQueue.containsKey(lastUpdateHQLen)) {
+				lenTime = lengthTimeHPQueue.remove(lastUpdateHQLen);
 			}
-			
-			hQLength.put(lastUpdateHQLen, lenTime + (lastHQUpdateTime - localTime));
-			lastHQUpdateTime = localTime;			
+
+			lengthTimeHPQueue.put(lastUpdateHQLen, lenTime
+					+ (localTime - lastHQUpdateTime));
+			lastHQUpdateTime = localTime;
+			lastUpdateHQLen = length;
 			break;
-			
+
 		case LOW:
-			if(lQLength.containsKey(lastUpdateLQLen)){
-				lenTime = lQLength.get(lastUpdateLQLen);
-				lQLength.remove(lastUpdateLQLen);
+			if (lengthTimeLPQueue.containsKey(lastUpdateLQLen)) {
+				lenTime = lengthTimeLPQueue.remove(lastUpdateLQLen);
 			}
-			
-			lQLength.put(lastUpdateLQLen, lenTime + (lastLQUpdateTime - localTime));
+
+			lengthTimeLPQueue.put(lastUpdateLQLen, lenTime
+					+ (localTime - lastLQUpdateTime));
 			lastLQUpdateTime = localTime;
+			lastUpdateLQLen = length;
 			break;
 		}
+
 	}
-	
-	public void endCollection(double time){
-		totalRunTime = time;
+
+	public void endCollection(double time) {
+
+		/*
+		 * updating local queues lengths
+		 */
+		updateQueueLength(Priority.HIGH, lastUpdateHQLen, time);
+		updateQueueLength(Priority.LOW, lastUpdateLQLen, time);
+
 		updateGlobalCollector();
 	}
-	
-	public void updateGlobalCollector(){
+
+	public void updateGlobalCollector() {
+
+		updateGlobalQueueLengths();
+		updateGlobalCompletionStates();
 		
-		getGlobalCollector(); // create the global collector if it is not created yet.
-		
-		instance.totalJobNum += totalJobNum;
-		instance.totalJobHQ += totalJobHQ;
-		instance.totalJobLQ += totalJobLQ;
-		
-		instance.totalCompletedJobNum += totalCompletedJobNum; 
-		instance.totalCompletedJobHQ += totalCompletedJobHQ; 
-		instance.totalCompletedJobLQ += totalCompletedJobLQ; 
+		serversCount++;
+	}
 
-		instance.totalPreemptedJobNum += totalPreemptedJobNum; 
-		instance.totalPreemptedJobHQ += totalPreemptedJobHQ;  
-		instance.totalPreemptedJobLQ += totalPreemptedJobLQ; 
-
-
-		instance.totalRejectedJobNum += totalRejectedJobNum; 
-		instance.totalRejectedJobHQ += totalRejectedJobHQ; 
-		instance.totalRejectedJobLQ += totalRejectedJobLQ;  
-
-		instance.totalJobsLength += totalJobsLength;  
-		instance.totalJobsLengthHQ += totalJobsLengthHQ;  
-		instance.totalJobsLengthLQ += totalJobsLengthLQ;  
-
-		for (int len : hQLength.keySet()) {
-			if (instance.hQLength.containsKey(len)){
-				double tmp = instance.hQLength.get(len);
-				instance.hQLength.remove(len);
-				instance.hQLength.put(len, tmp+hQLength.get(len));
+	private void updateGlobalCompletionStates() {
+		for (JobCompletionState jcs : stats.keySet()) {
+			if (instance.stats.containsKey(jcs)) {
+				instance.stats.put(jcs, instance.stats.get(jcs)
+						+ stats.get(jcs));
+				continue;
 			}
-			else{
-				instance.hQLength.put(len, hQLength.get(len));
-			}
-		}
-		
-		for (int len : lQLength.keySet()) {
-			if (instance.lQLength.containsKey(len)){
-				double tmp = instance.lQLength.get(len);
-				instance.lQLength.remove(len);
-				instance.lQLength.put(len, tmp+lQLength.get(len));
-			}
-			else{
-				instance.lQLength.put(len, lQLength.get(len));
-			}
+			instance.stats.put(jcs, stats.get(jcs));
 		}
 	}
-	
-	public void exportXML(File xmlFile){
-		//TODO change the names according to the email of amir and make the xml to 3 parts total, LQ, HQ
-		XmlPrinter xmlPrinter= new XmlPrinter(xmlFile);
-		AttributesImpl atts = new AttributesImpl();
-		
-			try {
-				xmlPrinter.startDocument();
-				
-				xmlPrinter.startElement("", "", "Statistics", atts);
-				
-				xmlPrinter.startElement("", "", "TotalJobs", atts);
-				xmlPrinter.characters(Integer.toString(totalJobNum).toCharArray(), 0, Integer.toString(totalJobNum).length());
-				xmlPrinter.endElement("", "", "TotalJobs");
-								
-				xmlPrinter.startElement("", "", "TotalJobHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalJobHQ).toCharArray(), 0, Integer.toString(totalJobHQ).length());
-				xmlPrinter.endElement("", "", "TotalJobHighPriority");
-				
-				xmlPrinter.startElement("", "", "TotalJobLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalJobLQ).toCharArray(), 0, Integer.toString(totalJobLQ).length());
-				xmlPrinter.endElement("", "", "TotalJobLowPriority");
-				
-				xmlPrinter.startElement("", "", "TotalCompletedJobs", atts);
-				xmlPrinter.characters(Integer.toString(totalCompletedJobNum).toCharArray(), 0, Integer.toString(totalCompletedJobNum).length());
-				xmlPrinter.endElement("", "", "TotalCompletedJobNum");
-				
-				xmlPrinter.startElement("", "", "TotalCompletedJobHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalCompletedJobHQ).toCharArray(), 0, Integer.toString(totalCompletedJobHQ).length());
-				xmlPrinter.endElement("", "", "TotalCompletedJobHighPriority");
-				
-				xmlPrinter.startElement("", "", "TotalCompletedJobLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalCompletedJobLQ).toCharArray(), 0, Integer.toString(totalCompletedJobLQ).length());
-				xmlPrinter.endElement("", "", "TotalCompletedJobLowPriority");
-				
-				xmlPrinter.startElement("", "", "TotalPreemptedJobs", atts);
-				xmlPrinter.characters(Integer.toString(totalPreemptedJobNum).toCharArray(), 0, Integer.toString(totalPreemptedJobNum).length());
-				xmlPrinter.endElement("", "", "TotalPreemptedJobs");
-				
-				xmlPrinter.startElement("", "", "PreemptedPercentage", atts);
-				double preemptPer = totalJobNum == 0 ? 0 : totalPreemptedJobNum/totalJobNum;
-				xmlPrinter.characters(Double.toString(preemptPer).toCharArray(), 0, Double.toString(preemptPer).length());
-				xmlPrinter.endElement("", "", "PreemptedPercentage");
-				
-				xmlPrinter.startElement("", "", "TotalPreemptedJobHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalPreemptedJobHQ).toCharArray(), 0, Integer.toString(totalPreemptedJobHQ).length());
-				xmlPrinter.endElement("", "", "TotalPreemptedJobHighPriority");
-				
-				xmlPrinter.startElement("", "", "TotalPreemptedJobLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalPreemptedJobLQ).toCharArray(), 0, Integer.toString(totalPreemptedJobLQ).length());
-				xmlPrinter.endElement("", "", "TotalPreemptedJobLowPriority");
-				
-				xmlPrinter.startElement("", "", "TotalRejectedJobs", atts);
-				xmlPrinter.characters(Integer.toString(totalRejectedJobNum).toCharArray(), 0, Integer.toString(totalRejectedJobNum).length());
-				xmlPrinter.endElement("", "", "TotalRejectedJobs");
-				
-				xmlPrinter.startElement("", "", "RejectedPercentage", atts);
-				double rejectedPer = totalJobNum == 0 ? 0 : totalRejectedJobNum/totalJobNum;
-				xmlPrinter.characters(Double.toString(rejectedPer).toCharArray(), 0, Double.toString(rejectedPer).length());
-				xmlPrinter.endElement("", "", "RejectedPercentage");
-				
-				xmlPrinter.startElement("", "", "TotalRejectedJobHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalRejectedJobHQ).toCharArray(), 0, Integer.toString(totalRejectedJobHQ).length());
-				xmlPrinter.endElement("", "", "TotalRejectedJobHighPriority");
-				
-				xmlPrinter.startElement("", "", "TotalRejectedJobLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalRejectedJobLQ).toCharArray(), 0, Integer.toString(totalRejectedJobLQ).length());
-				xmlPrinter.endElement("", "", "TotalRejectedJobLowPriority");
-				
-				xmlPrinter.startElement("", "", "TotalJobsLength", atts);
-				xmlPrinter.characters(Integer.toString(totalJobsLength).toCharArray(), 0, Integer.toString(totalJobsLength).length());
-				xmlPrinter.endElement("", "", "TotalJobsLength");
-				
-				xmlPrinter.startElement("", "", "TotalJobsLengthHighPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalJobsLengthHQ).toCharArray(), 0, Integer.toString(totalJobsLengthHQ).length());
-				xmlPrinter.endElement("", "", "TotalJobsLengthHighPriority");
-				
-				xmlPrinter.startElement("", "", "TotalJobsLengthLowPriority", atts);
-				xmlPrinter.characters(Integer.toString(totalJobsLengthLQ).toCharArray(), 0, Integer.toString(totalJobsLengthLQ).length());
-				xmlPrinter.endElement("", "", "TotalJobsLengthLowPriority");
-				
-				xmlPrinter.startElement("", "", "AverageJobLength", atts);
-				double averageJobLength = getAverageJobLength();
-				xmlPrinter.characters(Double.toString(averageJobLength).toCharArray(), 0, Double.toString(averageJobLength).length());
-				xmlPrinter.endElement("", "", "AverageJobLength");
-				
-				xmlPrinter.startElement("", "", "AverageJobLengthHighPriority", atts);
-				double averageJobLengthHQ = getAverageJobLengthHQ();
-				xmlPrinter.characters(Double.toString(averageJobLengthHQ).toCharArray(), 0, Double.toString(averageJobLengthHQ).length());
-				xmlPrinter.endElement("", "", "AverageJobLengthHighPriority");
-				
-				xmlPrinter.startElement("", "", "AverageJobLengthLowPriority", atts);
-				double averageJobLengthLQ = getAverageJobLengthLQ();
-				xmlPrinter.characters(Double.toString(averageJobLengthLQ).toCharArray(), 0, Double.toString(averageJobLengthLQ).length());
-				xmlPrinter.endElement("", "", "AverageJobLengthLowPriority");
-				
-				xmlPrinter.startElement("", "", "HighPriorityQueueMaxLength", atts);
-				int maxHQLen = gethQMaxLength();
-				xmlPrinter.characters(Integer.toString(maxHQLen).toCharArray(), 0, Integer.toString(maxHQLen).length());
-				xmlPrinter.endElement("", "", "HighPriorityQueueMaxLength");
-				
-				xmlPrinter.startElement("", "", "HighPriorityQueueAverageLength", atts);
-				double avgHQLen = gethQAvgLength();
-				xmlPrinter.characters(Double.toString(avgHQLen).toCharArray(), 0, Double.toString(avgHQLen).length());
-				xmlPrinter.endElement("", "", "HighPriorityQueueAverageLength");
-				
-				xmlPrinter.startElement("", "", "LowPriorityQueueMaxLength", atts);
-				int maxLQLen = getlQMaxLength();
-				xmlPrinter.characters(Integer.toString(maxLQLen).toCharArray(), 0, Integer.toString(maxLQLen).length());
-				xmlPrinter.endElement("", "", "LowPriorityQueueMaxLength");
-				
-				xmlPrinter.startElement("", "", "LowPriorityQueueAverageLength", atts);
-				double avgLQLen = getlQAvgLength();
-				xmlPrinter.characters(Double.toString(avgLQLen).toCharArray(), 0, Double.toString(avgLQLen).length());
-				xmlPrinter.endElement("", "", "LowPriorityQueueAverageLength");
-				
-				xmlPrinter.endElement("", "", "Statistics");
-				
-				xmlPrinter.endDocument();
-				
-			} catch (SAXException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
+	private void updateGlobalQueueLengths() {
+		for (long len : lengthTimeHPQueue.keySet()) {
+			if (instance.lengthTimeHPQueue.containsKey(len)) {
+				instance.lengthTimeHPQueue.put(len, instance.lengthTimeHPQueue
+						.get(len)
+						+ lengthTimeHPQueue.get(len));
+			} else {
+				instance.lengthTimeHPQueue.put(len, lengthTimeHPQueue.get(len));
 			}
+		}
+
+		for (long len : lengthTimeLPQueue.keySet()) {
+			if (instance.lengthTimeLPQueue.containsKey(len)) {
+				instance.lengthTimeLPQueue.put(len, instance.lengthTimeLPQueue
+						.get(len)
+						+ lengthTimeLPQueue.get(len));
+			} else {
+				instance.lengthTimeLPQueue.put(len, lengthTimeLPQueue.get(len));
+			}
+		}
+		
+		instance.lastHQUpdateTime = lastHQUpdateTime;
+		instance.lastLQUpdateTime = lastLQUpdateTime;
+	}
+
+	public void exportXML(File xmlFile, IConfiguration config) {
+		
+		XmlPrinter xmlPrinter = new XmlPrinter(xmlFile);
+		AttributesImpl defaultAtts = new AttributesImpl();
+
+		try {
+			xmlPrinter.startDocument();
+							
+			xmlPrinter.startElement("", "", SIMULATION_TAG, defaultAtts);
+
+			{
+				xmlPrinter.startElement("", "", SUMMARY_TAG, defaultAtts);
+				{
+					xmlPrinter.startElement("", "", JOBS_COUNT_TAG, defaultAtts);
+					char[] jCount = Long.toString(config.getNumJobs()).toCharArray();
+					xmlPrinter.characters(jCount, 0, jCount.length);
+					xmlPrinter.endElement("", "", JOBS_COUNT_TAG);
+					
+					xmlPrinter.startElement("", "", SERVER_COUNT_TAG, defaultAtts);
+					char[] sCount = Integer.toString(config.getNumServers()).toCharArray();
+					xmlPrinter.characters(sCount, 0, sCount.length);
+					xmlPrinter.endElement("", "", SERVER_COUNT_TAG);
+					
+					AttributesImpl policyAtts = new AttributesImpl(); 
+					if (config.getPolicy().equals(QueuePolicy.FINITE)) {
+						policyAtts.addAttribute("", "", "policy", "", QueuePolicy.FINITE.name());
+						xmlPrinter.startElement("", "", QUEUE_SETUP_TAG, policyAtts);
+						{
+							xmlPrinter.startElement("", "", MEMORY_SIZE_TAG, defaultAtts);
+							char[] mSize = Integer.toString(config.getMemorySize()).toCharArray();
+							xmlPrinter.characters(mSize, 0, mSize.length);
+							xmlPrinter.endElement("", "", MEMORY_SIZE_TAG);
+							
+							xmlPrinter.startElement("", "", DISTRIBUTION_FACTOR_TAG, defaultAtts);
+							char[] dFactor = (String.format("%." + PERCISION + "f", config.getDistributionFactor())).toCharArray();
+							xmlPrinter.characters(dFactor, 0, dFactor.length);
+							xmlPrinter.endElement("", "", DISTRIBUTION_FACTOR_TAG);
+						}
+						xmlPrinter.endElement("", "", QUEUE_SETUP_TAG);
+					} else {
+						policyAtts.addAttribute("", "", "policy", "", QueuePolicy.INFINITE.name());
+						xmlPrinter.startElement("", "", QUEUE_SETUP_TAG, policyAtts);
+						xmlPrinter.endElement("", "", QUEUE_SETUP_TAG);
+					}
+					
+					xmlPrinter.startElement("", "", LOAD_TAG, defaultAtts);
+					char[] load = (String.format("%." + PERCISION + "f", config.getLoad())).toCharArray();
+					xmlPrinter.characters(load, 0, load.length);
+					xmlPrinter.endElement("", "", LOAD_TAG);
+					
+					for (JobCompletionState jcs : statsPerc.keySet()) {
+						AttributesImpl terminationAtts = new AttributesImpl(); 
+						terminationAtts.addAttribute("", "", "HPTerminationState", "", jcs.HPJobCompletionState.name());
+						terminationAtts.addAttribute("", "", "LPTerminationState", "", jcs.LPJobCompletionState.name());
+						xmlPrinter.startElement("", "", TERMINATION_STATISTIC_TAG, terminationAtts);
+						char[] perc = (String.format("%." + PERCISION + "f", statsPerc.get(jcs))).toCharArray();
+						xmlPrinter.characters(perc, 0, perc.length);
+						xmlPrinter.endElement("", "", TERMINATION_STATISTIC_TAG);
+					}
+				}
+
+				xmlPrinter.endElement("", "", SUMMARY_TAG);
+	
+				xmlPrinter.startElement("", "", HIGH_PRIORITY_TAG, defaultAtts);
+				{
+					xmlPrinter.startElement("", "", AVERAGE_QUEUE_LENGTH_TAG, defaultAtts);
+					{
+						char[] length = String.format("%." + PERCISION + "f", getHPQueueAvgLength())
+						.toCharArray();
+						xmlPrinter.characters(length, 0, length.length);
+					}
+					xmlPrinter.endElement("", "", AVERAGE_QUEUE_LENGTH_TAG);		
+					
+					xmlPrinter.startElement("", "", MAX_QUEUE_LENGTH_TAG, defaultAtts);
+					{
+						char[] max = Long.toString(getHPQueueMaxLength()).toCharArray();
+						xmlPrinter.characters(max, 0, max.length);
+					}
+					xmlPrinter.endElement("","",MAX_QUEUE_LENGTH_TAG);
+				}
+				xmlPrinter.endElement("", "", HIGH_PRIORITY_TAG);
+							
+				xmlPrinter.startElement("", "", LOW_PRIORITY_TAG, defaultAtts);
+				{
+					xmlPrinter.startElement("", "", AVERAGE_QUEUE_LENGTH_TAG, defaultAtts);
+					{
+						char[] length = String.format("%." + PERCISION + "f", getLPQueueAvgLength())
+						.toCharArray();
+						xmlPrinter.characters(length, 0, length.length);
+					}
+					xmlPrinter.endElement("", "", AVERAGE_QUEUE_LENGTH_TAG);		
+					
+					xmlPrinter.startElement("", "", MAX_QUEUE_LENGTH_TAG, defaultAtts);
+					{
+						char[] max = Long.toString(getLPQueueMaxLength()).toCharArray();
+						xmlPrinter.characters(max, 0, max.length);
+					}
+					xmlPrinter.endElement("","",MAX_QUEUE_LENGTH_TAG);
+				}
+
+				xmlPrinter.endElement("", "", LOW_PRIORITY_TAG);
+
+			}
+			xmlPrinter.endElement("", "", SIMULATION_TAG);
 			
-	}
-
-	/**
-	 * @return the totalJobNum
-	 */
-	public int getTotalJobNum() {
-		return totalJobNum;
-	}
-
-	/**
-	 * @return the totalJobHQ
-	 */
-	public int getTotalJobHQ() {
-		return totalJobHQ;
-	}
-
-	/**
-	 * @return the totalJobLQ
-	 */
-	public int getTotalJobLQ() {
-		return totalJobLQ;
-	}
-
-	/**
-	 * @return the totalCompletedJobNum
-	 */
-	public int getTotalCompletedJobNum() {
-		return totalCompletedJobNum;
-	}
-
-	/**
-	 * @return the totalCompletedJobHQ
-	 */
-	public int getTotalCompletedJobHQ() {
-		return totalCompletedJobHQ;
-	}
-
-	/**
-	 * @return the totalCompletedJobLQ
-	 */
-	public int getTotalCompletedJobLQ() {
-		return totalCompletedJobLQ;
-	}
-
-	/**
-	 * @return the totalDiscardedJobNum
-	 */
-	public int getTotalDiscardedJobNum() {
-		return totalRejectedJobNum;
-	}
-
-	/**
-	 * @return the totalDiscardedJobHQ
-	 */
-	public int getTotalDiscardedJobHQ() {
-		return totalRejectedJobHQ;
-	}
-
-	/**
-	 * @return the totalDiscardedJobLQ
-	 */
-	public int getTotalDiscardedJobLQ() {
-		return totalRejectedJobLQ;
-	}
-
-	/**
-	 * @return the totalJobsLength
-	 */
-	public int getTotalJobsLength() {
-		return totalJobsLength;
-	}
-
-	/**
-	 * @return the totalJobsLengthHQ
-	 */
-	public int getTotalJobsLengthHQ() {
-		return totalJobsLengthHQ;
-	}
-
-	/**
-	 * @return the totalJobsLengthLQ
-	 */
-	public int getTotalJobsLengthLQ() {
-		return totalJobsLengthLQ;
-	}
-
-	/**
-	 * @return the averageJobLength
-	 */
-	public double getAverageJobLength() {
-		return totalJobNum == 0 ? 0 : totalJobsLength/totalJobNum;
-	}
-
-	/**
-	 * @return the averageJobLengthHQ
-	 */
-	public double getAverageJobLengthHQ() {
-		return totalJobNum == 0 ? 0 : totalJobsLengthHQ/totalJobNum;
-	}
-
-	/**
-	 * @return the averageJobLengthLQ
-	 */
-	public double getAverageJobLengthLQ() {
-		return totalJobNum == 0 ? 0 : totalJobsLengthLQ/totalJobNum;
+			xmlPrinter.endDocument();
+			
+		} catch (SAXException se) {
+			throw new RuntimeException(se);
+		}
+					
 	}
 
 	/**
 	 * @return the hQMaxLength
 	 */
-	public int gethQMaxLength() {
-		int maxLen = -1;
-		for (int len : hQLength.keySet()) {
+	public long getHPQueueMaxLength() {
+		long maxLen = 0;
+		for (long len : lengthTimeHPQueue.keySet()) {
 			if (maxLen < len)
 				maxLen = len;
 		}
@@ -460,23 +324,24 @@ public class StatisticsCollector {
 
 	/**
 	 * This should be invoked after the simulation is over
+	 * 
 	 * @return the hQAvgLength
 	 */
-	public double gethQAvgLength() {
-		double avgLen = 0;
-		for (int len : hQLength.keySet()) {
-			avgLen += (hQLength.get(len)/totalRunTime)*len;
+	public static double getHPQueueAvgLength() {
+		double avgLen = 0.0;
+		for (long len : instance.lengthTimeHPQueue.keySet()) {
+			avgLen += (instance.lengthTimeHPQueue.get(len) / (serversCount * instance.lastHQUpdateTime)) * len;
 		}
-		
+
 		return avgLen;
 	}
 
 	/**
 	 * @return the lQMaxLength
 	 */
-	public int getlQMaxLength() {
-		int maxLen = -1;
-		for (int len : lQLength.keySet()) {
+	public static long getLPQueueMaxLength() {
+		long maxLen = 0;
+		for (long len : instance.lengthTimeLPQueue.keySet()) {
 			if (maxLen < len)
 				maxLen = len;
 		}
@@ -486,20 +351,26 @@ public class StatisticsCollector {
 	/**
 	 * @return the lQAvgLength
 	 */
-	public double getlQAvgLength() {
+	public static double getLPQueueAvgLength() {
 		double avgLen = 0;
-		for (int len : lQLength.keySet()) {
-			avgLen += (lQLength.get(len)/totalRunTime)*len;
+		for (long len : instance.lengthTimeLPQueue.keySet()) {
+			avgLen += (instance.lengthTimeLPQueue.get(len) / (serversCount * instance.lastLQUpdateTime)) * len;
 		}
-		
+
 		return avgLen;
 	}
-	
-	public double getPreemptedPercentage(){
-		return totalJobNum == 0 ? 0 : totalPreemptedJobNum/totalJobNum;
-	}
-	
-	public double getRejectedPercentage(){
-		return totalJobNum == 0 ? 0 : totalRejectedJobNum/totalJobNum;
+
+	/**
+	 * prepares the final statistics of the simulation
+	 */
+	public void finalizeStats() {
+		long completedJobsCount = 0;
+		for (long completionCount : stats.values()) {
+			completedJobsCount += completionCount;
+		}
+		
+		for (JobCompletionState jcs : stats.keySet()) {
+			statsPerc.put(jcs, (stats.get(jcs) / (double)completedJobsCount));
+		}
 	}
 }

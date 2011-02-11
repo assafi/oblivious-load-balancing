@@ -118,7 +118,8 @@ public class Main {
 					+ "Simulation summary will be written to log instead.");
 			// TODO: WRITE SUMMARY TO LOG HERE
 		}
-		sc.exportXML(xmlOutputFile);
+		sc.finalizeStats();
+		sc.exportXML(xmlOutputFile, config);
 		log.info(step() + "Exporting results, See \""
 				+ xmlOutputFile.getAbsolutePath() + "\" for details.");
 	}

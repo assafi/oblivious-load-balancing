@@ -12,7 +12,6 @@ package engine;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import engine.Job.JobState;
 import engine.Server.Priority;
 import exceptions.QueueIsFullException;
 
@@ -24,12 +23,12 @@ public class JobsQueue {
 
 	private LinkedList<Job> list;
 	private Priority priority;
-	private int size;
-	private int maxSize;
+	private long size;
+	private long maxSize;
 	private StatisticsCollector statisticsCollector;
 	private Server associatedServer;
 
-	public JobsQueue(StatisticsCollector statisticsCollector, Server associatedServer, Priority priority, int maxSize) {
+	public JobsQueue(StatisticsCollector statisticsCollector, Server associatedServer, Priority priority, long maxSize) {
 		this.statisticsCollector = statisticsCollector;
 		this.associatedServer = associatedServer; 
 		list = new LinkedList<Job>();
@@ -38,7 +37,7 @@ public class JobsQueue {
 		size = 0;
 	}
 	
-	public int getQueueMaxSize()
+	public long getQueueMaxSize()
 	{
 		return maxSize;
 	}
@@ -53,7 +52,7 @@ public class JobsQueue {
 		return (size() == 0);
 	}
 	
-	public int size()
+	public long size()
 	{
 		return size;
 	}
@@ -69,9 +68,11 @@ public class JobsQueue {
 		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 	}
 	
-	public void addFirst(Job job)
+	public void addFirst(Job job) throws QueueIsFullException
 	{
-		// Assume that the size of the queue didn't reach its limit 
+		if (size() >= maxSize) {
+			throw new QueueIsFullException(job);
+		}
 		list.addFirst(job);
 		size++;
 		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
@@ -79,16 +80,8 @@ public class JobsQueue {
 	
 	public Job dequeue()
 	{
-		if(isEmpty())
-		{
-			list.clear();
-			throw new NoSuchElementException();
-		}
-		while(list.peek().getState() == JobState.DISCARDED)
-		{
-			list.remove();
-		}
-		Job retJob = list.remove();
+		Job retJob = peek(); 
+		list.remove();
 		size--;
 		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
 		if(isEmpty())
@@ -105,7 +98,7 @@ public class JobsQueue {
 			list.clear();
 			throw new NoSuchElementException();
 		}
-		while(list.peek().getState() == JobState.DISCARDED)
+		while(list.peek().getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 		{
 			list.remove();
 		}

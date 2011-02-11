@@ -46,7 +46,6 @@ public class Simulator {
 
 		int counter = 0;
 		while (!eGen.done()) {
-			log.debug("Job #" + counter++);
 			Job primaryJob = eGen.nextJob();
 			Job secondaryJob = primaryJob.clone();
 
@@ -69,6 +68,8 @@ public class Simulator {
 
 			Server primaryServer = servers[primaryServerIndex];
 			Server secondaryServer = servers[secondaryServerIndex];
+
+			log.debug("Job #" + counter++ + ", job created at: " + primaryJob.getCreationTime());
 
 			/*
 			 * Need to push secondary job first, because the notification of a
