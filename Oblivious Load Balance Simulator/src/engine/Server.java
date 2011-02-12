@@ -17,7 +17,7 @@ import config.QueuePolicy;
 import exceptions.QueueIsFullException;
 
 /**
- * @author Asi Bross
+ * @author Asi Bross, Assaf Israel
  *
  */
 public class Server {
@@ -117,8 +117,8 @@ public class Server {
 			return;
 		}
 		
-		while(Double.compare(localTime, currentTime) < 0)
 		{
+			while(Double.compare(localTime, currentTime) < 0)
 			if(currentJob != null) // A job is running
 			{
 				handleRunningJob(currentTime);
@@ -141,16 +141,17 @@ public class Server {
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
 			if(currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 			{
-				if (Double.compare(localTime, currentJob.getDiscardTime()) < 0) {
-					localTime = currentJob.getDiscardTime();
+				if (localTime < currentJob.getDiscardTime()) {
+					localTime =Math.min(currentJob.getDiscardTime(),currentTime);
 				}
 				log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
 			}
-			else if(!hpQueue.isEmpty())
+			else if(!hpQueue.isEmpty() && Double.compare(jobAproxEndTime, hpQueue.peek().getCreationTime()) == 0)
 			{
 				// putting the LP job back in the queue
 				currentJob.setState(JobState.IN_QUEUE);
+				currentJob.setExecutionStartTime(0.0); // resetting the start time
 				try {
 					lpQueue.addFirst(currentJob);
 					log.debug(String.format("Running LP job[%d] was preempted at server[%d] at %f", currentJob.jobID, serverID, localTime));
@@ -227,13 +228,27 @@ public class Server {
 
 	private void handleNextJob(double currentTime) {
 		if(!hpQueue.isEmpty() && 
-			(lpQueue.isEmpty() || 
-			hpQueue.peek().getCreationTime() <= lpQueue.peek().getCreationTime()))
+			(hpQueue.peek().getCreationTime() <= localTime ||
+			 (hpQueue.peek().getCreationTime() <= currentTime &&
+				(lpQueue.isEmpty() || 
+				 lpQueue.peek().getCreationTime() < hpQueue.peek().getCreationTime()))))
+			/*
+			 * The last condition checks if there should be a LP job that should start running
+			 * between the HP job creation time and the local time.
+			 */
 		{
 			currentJob = hpQueue.dequeue();
 			currentJob.setState(JobState.RUNNING);
-			// Giving the mirror server a chance to execute this job as LP before
-			// doing it in this server as HP.
+			
+			/*
+			 * this is a HP job, so it's starting time is always its creation time
+			 */
+			localTime = currentJob.getCreationTime(); 
+			
+			/*
+			 *  Giving the mirror server a chance to execute this job as LP before
+			 *   doing it in this server as HP.
+			 */
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
 			if((currentJob == null) || (currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION))
 			{
@@ -252,9 +267,16 @@ public class Server {
 			currentJob = lpQueue.dequeue();
 			currentJob.setState(JobState.RUNNING);
 			
-			// It is possible that the mirror server may finish the job as HP before this server does
-			// hence we are updating that server's local time.
+			/*
+			 *  It is possible that the mirror server may finish the job as HP before this server does
+			 *  hence we are updating that server's local time.
+			 */
 			currentJob.setExecutionStartTime(localTime);
+			
+			/*
+			 * We know that the mirror's job server will not get any new job before the "safeUpdateTime",
+			 * and there for is safe to alert him of the time change. (localTime could also work here).    
+			 */
 			double safeUpdateTime = Math.min(currentTime, getNextJobTerminationTime(currentJob));
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
 			if(currentJob == null || currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
@@ -264,7 +286,6 @@ public class Server {
 			}
 			log.debug(String.format("New LP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
 			currentJob.setExecutionStartTime(localTime);
-//			localTime = safeUpdateTime; // ???
 		}
 		else
 		{

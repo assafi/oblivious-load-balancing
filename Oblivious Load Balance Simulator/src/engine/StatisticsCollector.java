@@ -76,12 +76,17 @@ public class StatisticsCollector {
 		return instance;
 	}
 
+	/**
+	 * Logs the termination statistics according to the 
+	 * termination states of the HP &amp LP jobs.
+	 * @param job Only one job is needed to log the termination. 
+	 */
 	public void reportTermination(Job job) {
 
-		if (job.getJobLength() == 0) { // Job that states that the run is over
+		if (job.getJobLength() == 0 || job.ignore) { 
 			return;
 		}
-
+		
 		Job siblingJob = job.getMirrorJob();
 		switch (job.associatedQueue.getQueuePriority()) {
 		case HIGH:
@@ -112,7 +117,7 @@ public class StatisticsCollector {
 	}
 
 	public void updateQueueLength(Priority priority, long length,
-			double localTime) {
+			double localTime, boolean ignore) {
 
 		double lenTime = 0;
 		
@@ -122,8 +127,10 @@ public class StatisticsCollector {
 				lenTime = lengthTimeHPQueue.remove(lastUpdateHQLen);
 			}
 
-			lengthTimeHPQueue.put(lastUpdateHQLen, lenTime
-					+ (localTime - lastHQUpdateTime));
+			if (!ignore) {
+				lengthTimeHPQueue.put(lastUpdateHQLen, lenTime
+						+ (localTime - lastHQUpdateTime));
+			}
 			lastHQUpdateTime = localTime;
 			lastUpdateHQLen = length;
 			break;
@@ -133,8 +140,10 @@ public class StatisticsCollector {
 				lenTime = lengthTimeLPQueue.remove(lastUpdateLQLen);
 			}
 
-			lengthTimeLPQueue.put(lastUpdateLQLen, lenTime
-					+ (localTime - lastLQUpdateTime));
+			if (!ignore) {
+				lengthTimeLPQueue.put(lastUpdateLQLen, lenTime
+						+ (localTime - lastLQUpdateTime));
+			}
 			lastLQUpdateTime = localTime;
 			lastUpdateLQLen = length;
 			break;
@@ -147,8 +156,8 @@ public class StatisticsCollector {
 		/*
 		 * updating local queues lengths
 		 */
-		updateQueueLength(Priority.HIGH, lastUpdateHQLen, time);
-		updateQueueLength(Priority.LOW, lastUpdateLQLen, time);
+//		updateQueueLength(Priority.HIGH, lastUpdateHQLen, time,true);
+//		updateQueueLength(Priority.LOW, lastUpdateLQLen, time,true);
 
 		updateGlobalCollector();
 	}
@@ -329,8 +338,14 @@ public class StatisticsCollector {
 	 */
 	public static double getHPQueueAvgLength() {
 		double avgLen = 0.0;
+		double totalReportedTime = 0.0;
+		
+		for (double time : instance.lengthTimeHPQueue.values()) {
+			totalReportedTime += time;
+		}
+		
 		for (long len : instance.lengthTimeHPQueue.keySet()) {
-			avgLen += (instance.lengthTimeHPQueue.get(len) / (serversCount * instance.lastHQUpdateTime)) * len;
+			avgLen += (instance.lengthTimeHPQueue.get(len) / totalReportedTime) * len;
 		}
 
 		return avgLen;
@@ -353,8 +368,14 @@ public class StatisticsCollector {
 	 */
 	public static double getLPQueueAvgLength() {
 		double avgLen = 0;
+		double totalReportedTime = 0.0;
+		
+		for (double time : instance.lengthTimeLPQueue.values()) {
+			totalReportedTime += time;
+		}
+		
 		for (long len : instance.lengthTimeLPQueue.keySet()) {
-			avgLen += (instance.lengthTimeLPQueue.get(len) / (serversCount * instance.lastLQUpdateTime)) * len;
+			avgLen += (instance.lengthTimeLPQueue.get(len) / totalReportedTime) * len;
 		}
 
 		return avgLen;

@@ -20,7 +20,9 @@ import config.IConfiguration;
  */
 public class EventGenerator {
 
-	private static final double EPSILON = 1e-8;
+	public static final double STATISTICAL_MARGIN = 0.1;
+	
+	private long jobsTotal;
 	private long jobsRemained;
 	private double clock = 0.0;
 
@@ -35,6 +37,7 @@ public class EventGenerator {
 	 */
 	public EventGenerator(IConfiguration config) {
 		this.jobsRemained = config.getNumJobs();
+		this.jobsTotal = config.getNumJobs();
 
 		if (jobsRemained < 1) {
 			throw new IllegalArgumentException(
@@ -64,6 +67,16 @@ public class EventGenerator {
 	}
 
 	/**
+	 * @param ordinal The sequential number of the job
+	 * @return True iff the ordinal number is in the upper or lower
+	 * <i>STATISTICAL_MARGIN</i> percentage, False otherwise.
+	 */
+	public boolean ignoredJob(long ordinal) {
+		return ordinal <= STATISTICAL_MARGIN * jobsTotal ||
+			ordinal >= (1-STATISTICAL_MARGIN) * jobsTotal;
+	}
+	
+	/**
 	 * @return
 	 */
 	public Job nextJob() {
@@ -76,15 +89,8 @@ public class EventGenerator {
 				.nextExponential(averageArrivalRate);
 		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
 
-		/*
-		 * According to the definition of exponential probability the result
-		 * cannot be <=0 !
-		 */
-		assert (interval > EPSILON);
-		assert (jobLength > EPSILON);
-
 		clock += interval;
-		return new Job(jobLength, clock);
+		return new Job(jobLength, clock,ignoredJob(jobsRemained));
 	}
 
 	/**
@@ -93,7 +99,7 @@ public class EventGenerator {
 	 *         of servers activity, and initiate statistics collection.
 	 */
 	public Job finalJob() {
-		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH); // + 10000.0
+		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH,true); // + 10000.0
 	}
 
 }

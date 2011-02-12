@@ -65,7 +65,8 @@ public class JobsQueue {
 		}
 		list.add(job);
 		size++;
-		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
+		statisticsCollector.updateQueueLength(priority, size(), 
+				associatedServer.getLocalTime(), job.ignore);
 	}
 	
 	public void addFirst(Job job) throws QueueIsFullException
@@ -75,7 +76,8 @@ public class JobsQueue {
 		}
 		list.addFirst(job);
 		size++;
-		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
+		statisticsCollector.updateQueueLength(priority, size(), 
+				associatedServer.getLocalTime(),job.ignore);
 	}
 	
 	public Job dequeue()
@@ -83,7 +85,8 @@ public class JobsQueue {
 		Job retJob = peek(); 
 		list.remove();
 		size--;
-		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
+		statisticsCollector.updateQueueLength(priority, size(), 
+				associatedServer.getLocalTime(),retJob.ignore);
 		if(isEmpty())
 		{
 			list.clear();
@@ -105,9 +108,10 @@ public class JobsQueue {
 		return list.peek();
 	}
 
-	public void alertJobDiscarded() {
+	public void alertJobDiscarded(Job job) {
 		size--;
-		statisticsCollector.updateQueueLength(priority, size(), associatedServer.getLocalTime());
+		statisticsCollector.updateQueueLength(priority, size(), 
+				associatedServer.getLocalTime(),job.ignore);
 	}
 	
 }

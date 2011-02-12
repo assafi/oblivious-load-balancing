@@ -50,7 +50,7 @@ public class ServerTestCase {
 		
 		Job job, jobCopy; 
 		
-		job = new Job(5.0, 0.0);
+		job = new Job(5.0, 0.0,false);
 		jobCopy = job.clone();
 		job.setMirrorJob(jobCopy);
 		jobCopy.setMirrorJob(job);
@@ -58,7 +58,7 @@ public class ServerTestCase {
 		serverA.AddJob(job, Priority.HIGH);
 		serverB.AddJob(jobCopy, Priority.LOW);
 		
-		job = new Job(10.0, 2.0);
+		job = new Job(10.0, 2.0,false);
 		jobCopy = job.clone();
 		job.setMirrorJob(jobCopy);
 		jobCopy.setMirrorJob(job);
@@ -66,7 +66,7 @@ public class ServerTestCase {
 		serverA.AddJob(job, Priority.LOW);
 		serverB.AddJob(jobCopy, Priority.HIGH);
 		
-		job = new Job(10.0, 3.0);
+		job = new Job(10.0, 3.0,false);
 		jobCopy = job.clone();
 		job.setMirrorJob(jobCopy);
 		jobCopy.setMirrorJob(job);
@@ -74,7 +74,7 @@ public class ServerTestCase {
 		serverA.AddJob(job, Priority.HIGH);
 		serverB.AddJob(jobCopy, Priority.LOW);
 		
-		job = new Job(0.0, 30.0);
+		job = new Job(0.0, 30.0,false);
 		jobCopy = job.clone();
 		job.setMirrorJob(jobCopy);
 		jobCopy.setMirrorJob(job);

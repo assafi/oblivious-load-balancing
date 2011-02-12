@@ -27,6 +27,7 @@ public class Job {
 	private double executionEndTime;
 	private double discardTime;
 	private JobState state;
+	public final boolean ignore;
 
 	private static int lastJobCreatedID = 0; // For debug
 	public int jobID; // For debug
@@ -37,20 +38,21 @@ public class Job {
 	// The server this job belongs to.
 	public Server associatedServer;
 
-	public Job(double jobLength, double creationTime) {
-		this(null, jobLength, creationTime);
+	public Job(double jobLength, double creationTime, boolean ignore) {
+		this(null, jobLength, creationTime, ignore);
 	}
 
 	@Override
 	protected Job clone() {
-		return new Job(this.mirrorJob, this.jobLength, this.jobCreationTime);
+		return new Job(this.mirrorJob, this.jobLength, this.jobCreationTime,this.ignore);
 	}
 
-	public Job(Job mirrorJob, double jobLength, double creationTime) {
+	public Job(Job mirrorJob, double jobLength, double creationTime, boolean ignore) {
 		this.mirrorJob = mirrorJob;
 		this.jobLength = jobLength;
 		this.jobCreationTime = creationTime;
 		this.state = JobState.INITIAL;
+		this.ignore = ignore;
 		jobID = ++lastJobCreatedID;
 	}
 
@@ -77,7 +79,7 @@ public class Job {
 	public void setState(JobState state) {
 		this.state = state;
 	}
-
+	
 	public void discardJob(double currentTime) {
 		switch (state) {
 		case COMPLETED:
@@ -85,7 +87,7 @@ public class Job {
 					"This shouldn't have happened, it is not possible for a job to complete while its mirror job was already completed");
 		case IN_QUEUE:
 			// Alert the queue that one of the jobs was discarded.
-			associatedQueue.alertJobDiscarded();
+			associatedQueue.alertJobDiscarded(this);
 			state = JobState.DROPPED_ON_SIBLING_COMPLETION;
 			break;
 		case RUNNING:
