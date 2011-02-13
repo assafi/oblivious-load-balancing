@@ -20,13 +20,13 @@ import config.IConfiguration;
  */
 public class EventGenerator {
 
-	public static final double STATISTICAL_MARGIN = 0.1;
-	
-	private long jobsTotal;
+	private final double statisticalMargin;
+
+	private final long jobsTotal;
 	private long jobsRemained;
 	private double clock = 0.0;
 
-	private final double JOB_MEAN_LENGTH = 1.0;
+	private final double jobMeanLength;
 	private double averageArrivalRate;
 
 	private RandomData intervalRandomizer = new RandomDataImpl();
@@ -55,8 +55,20 @@ public class EventGenerator {
 		}
 
 		// Normalized according to the number of servers
-		this.averageArrivalRate = 
-			1 / (config.getNumServers() * config.getLoad());
+		this.averageArrivalRate = 1 / (config.getNumServers() * config
+				.getLoad());
+
+		if ((jobMeanLength = config.getJobMeanLength()) <= 0.0) {
+			throw new IllegalArgumentException(
+					"Job mean length must be a positive number");
+		}
+		
+		
+		if ((statisticalMargin = config.getStatisticalMargin()) < 0.0
+				|| config.getStatisticalMargin() > 0.5) {
+			throw new IllegalArgumentException(
+					"Statistical margin must be in the range [0,0.5)");
+		}
 	}
 
 	/**
@@ -67,15 +79,16 @@ public class EventGenerator {
 	}
 
 	/**
-	 * @param ordinal The sequential number of the job
+	 * @param ordinal
+	 *            The sequential number of the job
 	 * @return True iff the ordinal number is in the upper or lower
-	 * <i>STATISTICAL_MARGIN</i> percentage, False otherwise.
+	 *         <i>STATISTICAL_MARGIN</i> percentage, False otherwise.
 	 */
 	public boolean ignoredJob(long ordinal) {
-		return ordinal <= STATISTICAL_MARGIN * jobsTotal ||
-			ordinal >= (1-STATISTICAL_MARGIN) * jobsTotal;
+		return ordinal <= statisticalMargin * jobsTotal
+				|| ordinal >= (1 - statisticalMargin) * jobsTotal;
 	}
-	
+
 	/**
 	 * @return
 	 */
@@ -87,10 +100,10 @@ public class EventGenerator {
 
 		double interval = intervalRandomizer
 				.nextExponential(averageArrivalRate);
-		double jobLength = lengthRandomizer.nextExponential(JOB_MEAN_LENGTH);
+		double jobLength = lengthRandomizer.nextExponential(jobMeanLength);
 
 		clock += interval;
-		return new Job(jobLength, clock,ignoredJob(jobsRemained));
+		return new Job(jobLength, clock, ignoredJob(jobsRemained));
 	}
 
 	/**
@@ -99,7 +112,7 @@ public class EventGenerator {
 	 *         of servers activity, and initiate statistics collection.
 	 */
 	public Job finalJob() {
-		return new Job(0.0, clock + 2 * JOB_MEAN_LENGTH,true); // + 10000.0
+		return new Job(0.0, clock + 2 * jobMeanLength, true); // + 10000.0
 	}
 
 }

@@ -2,10 +2,12 @@
 <configuration>
 	<servers-config>
 		<count>20</count>
-		<queue-policy policy="finite" dFactor="0.1">100</queue-policy>
+		<queue-policy policy="finite" dFactor="0.1">80</queue-policy>
 	</servers-config>
 	<jobs-config>
 		<load>1</load>
 		<count>100000</count>
+		<meanLength>1.0</meanLength>
 	</jobs-config>
+	<statisticsMargin>0.1</statisticsMargin>
 </configuration>

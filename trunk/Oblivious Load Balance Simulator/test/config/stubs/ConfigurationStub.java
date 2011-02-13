@@ -58,4 +58,14 @@ public class ConfigurationStub implements IConfiguration {
 		return policy;
 	}
 
+	@Override
+	public double getJobMeanLength() {
+		return 1.0;
+	}
+
+	@Override
+	public double getStatisticalMargin() {
+		return 0;
+	}
+
 }

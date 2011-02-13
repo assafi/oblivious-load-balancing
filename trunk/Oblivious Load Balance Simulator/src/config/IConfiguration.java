@@ -26,4 +26,8 @@ public interface IConfiguration {
 	public double getDistributionFactor();
 
 	public long getNumJobs();
+
+	public double getJobMeanLength();
+
+	public double getStatisticalMargin();
 }
