@@ -89,6 +89,8 @@ public class Job {
 			// Alert the queue that one of the jobs was discarded.
 			associatedQueue.alertJobDiscarded(this);
 			state = JobState.DROPPED_ON_SIBLING_COMPLETION;
+			executionStartTime = currentTime;
+			executionEndTime = currentTime;
 			break;
 		case RUNNING:
 			if (Double.compare(currentTime,associatedServer.getLocalTime()) > 0) {
@@ -97,6 +99,7 @@ public class Job {
 				discardTime = associatedServer.getLocalTime();
 			}
 			state = JobState.DROPPED_ON_SIBLING_COMPLETION;
+			executionEndTime = currentTime;
 			break;
 		default:
 			return;

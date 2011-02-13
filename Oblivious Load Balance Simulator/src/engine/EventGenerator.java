@@ -31,6 +31,7 @@ public class EventGenerator {
 
 	private RandomData intervalRandomizer = new RandomDataImpl();
 	private RandomData lengthRandomizer = new RandomDataImpl();
+	
 
 	/**
 	 * @param config
@@ -54,15 +55,15 @@ public class EventGenerator {
 					"Load must be in the range (0,1].");
 		}
 
-		// Normalized according to the number of servers
-		this.averageArrivalRate = 1 / (config.getNumServers() * config
-				.getLoad());
 
 		if ((jobMeanLength = config.getJobMeanLength()) <= 0.0) {
 			throw new IllegalArgumentException(
 					"Job mean length must be a positive number");
 		}
 		
+		// Normalized according to the number of servers
+		this.averageArrivalRate = jobMeanLength / (config.getNumServers() * config
+				.getLoad());
 		
 		if ((statisticalMargin = config.getStatisticalMargin()) < 0.0
 				|| config.getStatisticalMargin() > 0.5) {
@@ -101,10 +102,18 @@ public class EventGenerator {
 		double interval = intervalRandomizer
 				.nextExponential(averageArrivalRate);
 		double jobLength = lengthRandomizer.nextExponential(jobMeanLength);
-
+		
 		clock += interval;
 		return new Job(jobLength, clock, ignoredJob(jobsRemained));
 	}
+
+//	/**
+//	 * @param average
+//	 * @return
+//	 */
+//	private double exponential(double average) {
+//		return -Math.log(1-new Random().nextDouble()) * average;
+//	}
 
 	/**
 	 * @return The final Job, with creation time of (current clock + 2 * job
