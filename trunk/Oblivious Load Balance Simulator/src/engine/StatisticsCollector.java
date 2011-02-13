@@ -32,6 +32,10 @@ public class StatisticsCollector {
 	/**
 	 * 
 	 */
+	private static final String AVERAGE_WAITING_TIME_TAG = "AverageWaitingTime";
+	/**
+	 * 
+	 */
 	private static final String STATISTICAL_MARGIN_TAG = "StatisticalMargin";
 	/**
 	 * 
@@ -76,6 +80,9 @@ public class StatisticsCollector {
 	private HashMap<Long, Double> lengthTimeLPQueue = new HashMap<Long, Double>(); 
 	private double lastLQUpdateTime = 0;
 	private long lastUpdateLQLen = 0;
+	
+	private static double totalHPJobsTimeInSystem = 0.0;
+	private static double totalLPJobsTimeInSystem = 0.0;
 
 	public StatisticsCollector() {
 	}
@@ -98,12 +105,39 @@ public class StatisticsCollector {
 		Job siblingJob = job.getMirrorJob();
 		switch (job.associatedQueue.getQueuePriority()) {
 		case HIGH:
-			pushStat(job.getState(), siblingJob.getState());
+			recordTerminationCause(job.getState(), siblingJob.getState());
+			recordTimeInSystem(job,siblingJob);
 			break;
 		case LOW:
-			pushStat(siblingJob.getState(), job.getState());
+			recordTerminationCause(siblingJob.getState(), job.getState());
+			recordTimeInSystem(siblingJob,job);
 			break;
 		}
+	}
+
+	/**
+	 * @param hpJob
+	 * @param lpJob
+	 */
+	private void recordTimeInSystem(Job hpJob, Job lpJob) {
+
+		/*
+		 * Not including execution time
+		 */
+		totalHPJobsTimeInSystem += hpJob.getExecutionStartTime() - hpJob.getCreationTime(); 
+		totalLPJobsTimeInSystem += lpJob.getExecutionStartTime() - lpJob.getCreationTime();
+//
+//		
+//		
+//		if (Double.compare(hpJob.getExecutionStartTime(),hpJob.getCreationTime()) < 1 || 
+//				Double.compare(lpJob.getExecutionStartTime(),lpJob.getCreationTime()) < 1) {
+//			System.err.println(
+//					"Job ID: " + hpJob.jobID + "\n" + 
+//					"HP Job start time: " + hpJob.getExecutionStartTime() + "\n" + 
+//					"HP Job creation time: " + hpJob.getCreationTime() + "\n" +
+//					"LP Job start time: " + lpJob.getExecutionStartTime() + "\n" + 
+//					"LP Job creation time: " + lpJob.getCreationTime() + "\n");
+//		}
 	}
 
 	/**
@@ -112,7 +146,7 @@ public class StatisticsCollector {
 	 * @param LPCompState
 	 *            LP job completion state
 	 */
-	private void pushStat(JobState HPCompState, JobState LPCompState) {
+	private void recordTerminationCause(JobState HPCompState, JobState LPCompState) {
 		
 		JobCompletionState jcs = new JobCompletionState(HPCompState,
 				LPCompState);
@@ -303,6 +337,14 @@ public class StatisticsCollector {
 						xmlPrinter.characters(max, 0, max.length);
 					}
 					xmlPrinter.endElement("","",MAX_QUEUE_LENGTH_TAG);
+					
+					xmlPrinter.startElement("", "", AVERAGE_WAITING_TIME_TAG, defaultAtts);
+					{
+						char[] awt = String.format("%." + PERCISION + "f", AverageWaitingTime(totalHPJobsTimeInSystem,config)).
+						toCharArray();
+						xmlPrinter.characters(awt, 0, awt.length);
+					}
+					xmlPrinter.endElement("","",AVERAGE_WAITING_TIME_TAG);
 				}
 				xmlPrinter.endElement("", "", HIGH_PRIORITY_TAG);
 							
@@ -322,6 +364,14 @@ public class StatisticsCollector {
 						xmlPrinter.characters(max, 0, max.length);
 					}
 					xmlPrinter.endElement("","",MAX_QUEUE_LENGTH_TAG);
+					
+					xmlPrinter.startElement("", "", AVERAGE_WAITING_TIME_TAG, defaultAtts);
+					{
+						char[] awt = String.format("%." + PERCISION + "f", AverageWaitingTime(totalLPJobsTimeInSystem,config)).
+						toCharArray();
+						xmlPrinter.characters(awt, 0, awt.length);
+					}
+					xmlPrinter.endElement("","",AVERAGE_WAITING_TIME_TAG);
 				}
 
 				xmlPrinter.endElement("", "", LOW_PRIORITY_TAG);
@@ -338,11 +388,22 @@ public class StatisticsCollector {
 	}
 
 	/**
+	 * @param totalJobsTimeInSystem
+	 * @param config
+	 * @return
+	 */
+	private double AverageWaitingTime(double totalJobsTimeInSystem,
+			IConfiguration config) {
+		long numJobs = (long)(config.getNumJobs() * (1 - 2*config.getStatisticalMargin()));
+		return totalJobsTimeInSystem / numJobs;
+	}
+
+	/**
 	 * @return the hQMaxLength
 	 */
-	public long getHPQueueMaxLength() {
+	private static long getHPQueueMaxLength() {
 		long maxLen = 0;
-		for (long len : lengthTimeHPQueue.keySet()) {
+		for (long len : instance.lengthTimeHPQueue.keySet()) {
 			if (maxLen < len)
 				maxLen = len;
 		}
@@ -354,7 +415,7 @@ public class StatisticsCollector {
 	 * 
 	 * @return the hQAvgLength
 	 */
-	public static double getHPQueueAvgLength() {
+	private static double getHPQueueAvgLength() {
 		double avgLen = 0.0;
 		double totalReportedTime = 0.0;
 		
@@ -372,7 +433,7 @@ public class StatisticsCollector {
 	/**
 	 * @return the lQMaxLength
 	 */
-	public static long getLPQueueMaxLength() {
+	private static long getLPQueueMaxLength() {
 		long maxLen = 0;
 		for (long len : instance.lengthTimeLPQueue.keySet()) {
 			if (maxLen < len)
@@ -384,7 +445,7 @@ public class StatisticsCollector {
 	/**
 	 * @return the lQAvgLength
 	 */
-	public static double getLPQueueAvgLength() {
+	private static double getLPQueueAvgLength() {
 		double avgLen = 0;
 		double totalReportedTime = 0.0;
 		

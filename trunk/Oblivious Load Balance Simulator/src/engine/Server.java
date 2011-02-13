@@ -93,6 +93,8 @@ public class Server {
 			log.debug(String.format("New job[%d] added to server[%d] with priority %s at %f", job.jobID, serverID, priority.toString(), localTime));
 		} catch (QueueIsFullException e) {
 			job.setState(JobState.DROPPED_ON_FULL_QUEUE);
+			job.setExecutionStartTime(job.getCreationTime());
+			job.setExecutionEndTime(job.getCreationTime());
 			if (job.getMirrorJob().getState().isCompletionState()) {
 				/*
 				 * Both jobs are completed/discarded and there for we can report Job termination 
@@ -141,7 +143,7 @@ public class Server {
 			if(currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 			{
 				if (localTime < currentJob.getDiscardTime()) {
-					localTime =Math.min(currentJob.getDiscardTime(),currentTime);
+					localTime = Math.min(currentJob.getDiscardTime(),currentTime);
 				}
 				log.debug(String.format("Running LP job[%d] was discarded at server[%d] at %f", currentJob.jobID, serverID, localTime));
 				currentJob = null;
@@ -150,7 +152,6 @@ public class Server {
 			{
 				// putting the LP job back in the queue
 				currentJob.setState(JobState.IN_QUEUE);
-				currentJob.setExecutionStartTime(0.0); // resetting the start time
 				try {
 					lpQueue.addFirst(currentJob);
 					log.debug(String.format("Running LP job[%d] was preempted at server[%d] at %f", currentJob.jobID, serverID, localTime));
@@ -242,7 +243,7 @@ public class Server {
 			/*
 			 * this is a HP job, so it's starting time is always its creation time
 			 */
-			localTime = currentJob.getCreationTime(); 
+			localTime = Math.max(currentJob.getCreationTime(),localTime); 
 			
 			/*
 			 *  Giving the mirror server a chance to execute this job as LP before
@@ -284,7 +285,6 @@ public class Server {
 				return;
 			}
 			log.debug(String.format("New LP job[%d] started on server[%d] at %f", currentJob.jobID, serverID, localTime));
-			currentJob.setExecutionStartTime(localTime);
 		}
 		else
 		{

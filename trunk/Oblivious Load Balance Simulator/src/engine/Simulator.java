@@ -44,7 +44,7 @@ public class Simulator {
 	 */
 	public void execute() {
 
-		int counter = 0;
+		long counter = 0;
 		while (!eGen.done()) {
 			Job primaryJob = eGen.nextJob();
 			Job secondaryJob = primaryJob.clone();
@@ -52,9 +52,9 @@ public class Simulator {
 			primaryJob.setMirrorJob(secondaryJob);
 			secondaryJob.setMirrorJob(primaryJob);
 
-			int primaryServerIndex = indexRandomizer.nextInt(0,
+			int primaryServerIndex = indexRandomizer.nextSecureInt(0,
 					servers.length - 1);
-			int secondaryServerIndex = indexRandomizer.nextInt(0,
+			int secondaryServerIndex = indexRandomizer.nextSecureInt(0,
 					servers.length - 1);
 
 			/*
@@ -79,7 +79,7 @@ public class Simulator {
 			secondaryServer.AddJob(secondaryJob, Priority.LOW);
 			primaryServer.AddJob(primaryJob, Priority.HIGH);
 		}
-
+		
 		Job finalJob = eGen.finalJob();
 		for (Server server : servers) {
 			/*
