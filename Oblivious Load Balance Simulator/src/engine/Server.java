@@ -137,8 +137,7 @@ public class Server {
 		{
 			// It is possible that the mirror server may finish the job as HP before this server does
 			// hence we are updating that server's local time.
-			double safeUpdateTime = Math.min(currentTime, jobAproxEndTime);
-			currentJob.getMirrorJob().associatedServer.currentTimeChanged(safeUpdateTime);
+			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
 			if(currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION)
 			{
 				if (localTime < currentJob.getDiscardTime()) {

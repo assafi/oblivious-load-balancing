@@ -32,6 +32,14 @@ public class StatisticsCollector {
 	/**
 	 * 
 	 */
+	private static final String STATISTICAL_MARGIN_TAG = "StatisticalMargin";
+	/**
+	 * 
+	 */
+	private static final String JOBS_MEAN_LENGTH_TAG = "JobsMeanLength";
+	/**
+	 * 
+	 */
 	private static final String TERMINATION_STATISTIC_TAG = "TerminationStatistic";
 	private static final String QUEUE_SETUP_TAG = "QueueSetup";
 	private static final String LOAD_TAG = "Load";
@@ -228,6 +236,16 @@ public class StatisticsCollector {
 					char[] sCount = Integer.toString(config.getNumServers()).toCharArray();
 					xmlPrinter.characters(sCount, 0, sCount.length);
 					xmlPrinter.endElement("", "", SERVER_COUNT_TAG);
+					
+					xmlPrinter.startElement("", "", JOBS_MEAN_LENGTH_TAG, defaultAtts);
+					char[] jml = (String.format("%." + PERCISION + "f", config.getJobMeanLength())).toCharArray();
+					xmlPrinter.characters(jml, 0, jml.length);
+					xmlPrinter.endElement("", "", JOBS_MEAN_LENGTH_TAG);
+					
+					xmlPrinter.startElement("", "", STATISTICAL_MARGIN_TAG, defaultAtts);
+					char[] sm = (String.format("%." + PERCISION + "f", config.getStatisticalMargin())).toCharArray();
+					xmlPrinter.characters(sm, 0, sm.length);
+					xmlPrinter.endElement("", "", STATISTICAL_MARGIN_TAG);
 					
 					AttributesImpl policyAtts = new AttributesImpl(); 
 					if (config.getPolicy().equals(QueuePolicy.FINITE)) {

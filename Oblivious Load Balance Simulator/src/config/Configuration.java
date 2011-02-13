@@ -37,6 +37,8 @@ public class Configuration extends DefaultHandler implements IConfiguration {
 	private int memorySize = 0;
 	private double dFactor = 0.0;
 	private long numJobs = 0;
+	private double jobMeanLength = 1.0;
+	private double statisticalMargin = 0.0;
 	
 	Stack<String> xmlTags = new Stack<String>();
 
@@ -79,6 +81,8 @@ public class Configuration extends DefaultHandler implements IConfiguration {
 			log.debug("Distribution factor: " + dFactor);
 		}
 		log.debug("No. Jobs: " + numJobs);
+		log.debug("Jobs mean length: " + jobMeanLength);
+		log.debug("Statistical margin: " + statisticalMargin);
 	}
 
 	public static Configuration getInstance() {
@@ -136,6 +140,10 @@ public class Configuration extends DefaultHandler implements IConfiguration {
 			}
 		} else if ("load".equals(qName)) {
 			load = Double.valueOf(tempVal);
+		} else if ("meanLength".equals(qName)) {
+			jobMeanLength = Double.valueOf(tempVal);
+		} else if ("statisticsMargin".equals(qName)) {
+			statisticalMargin = Double.valueOf(tempVal);
 		}
 		xmlTags.pop();
 	}
@@ -162,5 +170,13 @@ public class Configuration extends DefaultHandler implements IConfiguration {
 
 	public long getNumJobs() {
 		return numJobs;
+	}
+
+	public double getJobMeanLength() {
+		return jobMeanLength;
+	}
+
+	public double getStatisticalMargin() {
+		return statisticalMargin;
 	}
 }
