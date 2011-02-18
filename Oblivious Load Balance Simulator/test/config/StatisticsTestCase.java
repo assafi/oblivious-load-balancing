@@ -69,8 +69,9 @@ public class StatisticsTestCase {
 		ConfigurationTestCase.createTempXML();
 		StatisticsCollector tmp = new StatisticsCollector();
 		
-		Configuration config = Configuration.getInstance();
-		config.parseFile(ConfigurationTestCase.xmlFile.getAbsolutePath());
+		ExperimentsConfiguration experimentsConfiguration = new ExperimentsConfiguration();
+		experimentsConfiguration.parseFile(ConfigurationTestCase.xmlFile.getAbsolutePath());
+		IConfiguration config = experimentsConfiguration.getAllExperimentsConfigurations().get(0);
 		
 		tmp.exportXML(outputXMLFile,config);
 		ConfigurationTestCase.destroyTempXML();
