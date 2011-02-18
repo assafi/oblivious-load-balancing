@@ -32,14 +32,16 @@ public class ConfigurationTestCase {
 	private final static String XML_CONTENT = 
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 		"<configuration>\n" +
-		"	<servers-config>\n" +
-		"		<count>1</count>\n" +
-		"		<queue-policy policy=\"finite\" dFactor=\"0.5\">10</queue-policy>\n" +
-		"	</servers-config>\n" +
-		"	<jobs-config>\n" +
-		"		<load>0.2</load>\n" +
-		"		<count>1000</count>\n" +	
-		"	</jobs-config>\n" +
+		"	<experiment>\n" + 
+		"		<servers-config>\n" +
+		"			<count>1</count>\n" +
+		"			<queue-policy policy=\"finite\" dFactor=\"0.5\">10</queue-policy>\n" +
+		"		</servers-config>\n" +
+		"		<jobs-config>\n" +
+		"			<load>0.2</load>\n" +
+		"			<count>1000</count>\n" +	
+		"		</jobs-config>\n" +
+		"	</experiment>\n" + 
 		"</configuration>";
 	public static File xmlFile = null;
 	
@@ -67,9 +69,9 @@ public class ConfigurationTestCase {
 	@Test
 	public void testGoodPath() throws IOException {
 		
-		Configuration config = Configuration.getInstance();
-		config.parseFile(xmlFile.getAbsolutePath());
-		
+		ExperimentsConfiguration experimentsConfiguration = new ExperimentsConfiguration();
+		experimentsConfiguration.parseFile(xmlFile.getAbsolutePath());
+		IConfiguration config = experimentsConfiguration.getAllExperimentsConfigurations().get(0);
 		assertEquals(1,config.getNumServers());
 		assertEquals(QueuePolicy.FINITE,config.getPolicy());
 		assertEquals(10,config.getMemorySize());
