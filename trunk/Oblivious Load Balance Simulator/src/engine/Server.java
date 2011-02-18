@@ -108,7 +108,7 @@ public class Server {
 	private void shutDown(double currentTime) {
 		hpQueue = null;
 		lpQueue = null;
-		statisticsCollector.endCollection(currentTime);
+		statisticsCollector.updateGlobalCollector();
 	}
 
 	public void currentTimeChanged(double currentTime)

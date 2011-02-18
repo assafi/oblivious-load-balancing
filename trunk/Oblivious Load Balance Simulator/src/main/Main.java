@@ -12,13 +12,16 @@ package main;
 import java.io.File;
 import java.io.IOException;
 
+import misc.CsvLabel;
+import misc.CsvWriter;
+
 import org.apache.log4j.Logger;
 
-import config.Configuration;
 import config.ExperimentsConfiguration;
 import config.IConfiguration;
 import config.LogFactory;
 import engine.EventGenerator;
+import engine.JobState;
 import engine.Server;
 import engine.Simulator;
 import engine.StatisticsCollector;
@@ -29,19 +32,28 @@ import engine.StatisticsCollector;
  */
 public class Main {
 
+	private static boolean csvFileIntitialised = false;
+	
 	private static final int NUM_EXPECTED_ARGUMENTS = 2;
 
 	private static final String USAGE = "<xml-config-file> <xml-output-file>";
 
+	private static String[] CSV_LABELS = null;
+
 	private static Logger log = LogFactory.getLog(Main.class);
 
 	private static int steps = 1;
+	private static int substeps = 1;
 
 	private static Server[] servers = null;
 
 	private static ExperimentsConfiguration experimentsConfiguration;
 	
 	private static Simulator simulator;
+	
+	private static StatisticsCollector sc = StatisticsCollector.getGlobalCollector();
+	
+	private static File outputFile = null;
 
 	public static void main(String[] args) {
 
@@ -57,16 +69,28 @@ public class Main {
 			log.info(step() + "Retrieving system configurations.");
 			experimentsConfiguration.parseFile(args[0]);
 			for (IConfiguration config : experimentsConfiguration.getAllExperimentsConfigurations()) {
+				log.info(step() + "Executing experiment #" + StatisticsCollector.getCurrentExperimentIndex());
 				setup(config);
 				execute(config);
 				collectStats(config, args[1]);
 			}
+			clean();
+			log.info(step() + "Simulation concluded. See results at: \"" 
+					+ outputFile.getCanonicalPath() + "\" for details.");
 		} catch (Exception e) {
 			usage(e.getMessage());
+			e.printStackTrace();
 			System.exit(1);
 		}
 
-		log.info(step() + "Simulation concluded.");
+	}
+
+	/**
+	 * @throws IOException 
+	 * 
+	 */
+	private static void clean() throws IOException {
+		StatisticsCollector.close();
 	}
 
 	/**
@@ -79,7 +103,7 @@ public class Main {
 			System.exit(1);
 		}
 
-		log.info(step() + "Configuring servers.");
+		log.info(substep() + "Configuring servers.");
 		Server.SetServersConfiguration(config);
 		
 		servers = new Server[config.getNumServers()];
@@ -88,48 +112,79 @@ public class Main {
 		}
 	}
 
-	/**
-	 * 
-	 */
 	private static void execute(IConfiguration config) {
 		EventGenerator eGen = new EventGenerator(config);
 		simulator = new Simulator(eGen, servers);
 
-		log.info(step() + "Starting simulation.");
+		log.info(substep() + "Starting simulation.");
 		simulator.execute();
-		log.info(step() + "Simulation completed.");
+		log.info(substep() + "Simulation completed.");
+	}
+
+	private static void collectStats(IConfiguration config, String outputFilePath) {
+
+		log.info(substep() + "Writing results.");
+		sc.finalizeStats();
+		try {
+			if (!csvFileIntitialised) {
+				initializeCSV(outputFilePath);
+				csvFileIntitialised = true;
+			}
+			sc.exportCSV(outputFile, config);
+		} catch (IOException e) {
+			log.error("Error while trying to create/write output file: \""
+					+ outputFilePath + "\".\n"
+					+ "Simulation summary will be written to log instead.");
+			// TODO: WRITE SUMMARY TO LOG HERE
+		}
+	}
+
+	private static void initializeCSV(String outputFilePath) throws IOException {
+		outputFile = new File(outputFilePath);
+		if (outputFile.exists()) {
+			outputFile.delete();
+		}
+		CsvWriter writer = new CsvWriter(outputFile, null);
+		prepareCsvLabels();
+		writer.writeLabels(CSV_LABELS);
+		StatisticsCollector.setWriter(writer);
 	}
 
 	/**
 	 * 
 	 */
-	private static void collectStats(IConfiguration config, String outputFilePath) {
+	private static void prepareCsvLabels() {
 
-		StatisticsCollector sc = StatisticsCollector.getGlobalCollector();
-
-		File xmlOutputFile = new File(outputFilePath);
-		if (xmlOutputFile.exists()) {
-			xmlOutputFile.delete();
+		CSV_LABELS = new String[CsvLabel.values().length + 5];
+		for (int i = 0; i < CsvLabel.values().length; i++) {
+			CSV_LABELS[i] = CsvLabel.values()[i].simpleName();
 		}
-		try {
-			xmlOutputFile.createNewFile();
-		} catch (IOException e) {
-			log.error("Error while trying to create output file: \""
-					+ outputFilePath + "\".\n"
-					+ "Simulation summary will be written to log instead.");
-			// TODO: WRITE SUMMARY TO LOG HERE
-		}
-		sc.finalizeStats();
-		sc.exportXML(xmlOutputFile, config);
-		log.info(step() + "Exporting results, See \""
-				+ xmlOutputFile.getAbsolutePath() + "\" for details.");
+		
+		int nextIndex = CsvLabel.values().length;
+		CSV_LABELS[nextIndex++] = hplpLabel(JobState.DROPPED_ON_FULL_QUEUE,JobState.DROPPED_ON_FULL_QUEUE);
+		CSV_LABELS[nextIndex++] = hplpLabel(JobState.COMPLETED,JobState.DROPPED_ON_SIBLING_COMPLETION);
+		CSV_LABELS[nextIndex++] = hplpLabel(JobState.COMPLETED,JobState.DROPPED_ON_FULL_QUEUE);
+		CSV_LABELS[nextIndex++] = hplpLabel(JobState.DROPPED_ON_FULL_QUEUE,JobState.COMPLETED);
+		CSV_LABELS[nextIndex++] = hplpLabel(JobState.DROPPED_ON_SIBLING_COMPLETION,JobState.COMPLETED);
 	}
 
 	/**
+	 * @param hpJobCompletionState
+	 * @param lpJobCompletionState
 	 * @return
 	 */
+	public static String hplpLabel(JobState hpJobCompletionState,
+			JobState lpJobCompletionState) {
+		return "HP-" + hpJobCompletionState.name() + " and LP-" + lpJobCompletionState.name();
+	}
+
 	private static String step() {
+		substeps = 1;
 		return steps++ + ") ";
+	}
+	
+	private static String substep() {
+		return (steps - 1) + "." + substeps++ + ") ";
 	}
 
 	/**
