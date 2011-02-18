@@ -15,6 +15,8 @@ import java.io.IOException;
 import org.apache.log4j.Logger;
 
 import config.Configuration;
+import config.ExperimentsConfiguration;
+import config.IConfiguration;
 import config.LogFactory;
 import engine.EventGenerator;
 import engine.Server;
@@ -37,7 +39,8 @@ public class Main {
 
 	private static Server[] servers = null;
 
-	private static Configuration config = Configuration.getInstance();
+	private static ExperimentsConfiguration experimentsConfiguration;
+	
 	private static Simulator simulator;
 
 	public static void main(String[] args) {
@@ -48,12 +51,18 @@ public class Main {
 			System.exit(1);
 		}
 
+		experimentsConfiguration = new ExperimentsConfiguration();
+		
 		try {
-			setup(args[0]);
-			execute();
-			collectStats(args[1]);
-		} catch (IllegalArgumentException iae) {
-			usage(iae.getMessage());
+			log.info(step() + "Retrieving system configurations.");
+			experimentsConfiguration.parseFile(args[0]);
+			for (IConfiguration config : experimentsConfiguration.getAllExperimentsConfigurations()) {
+				setup(config);
+				execute(config);
+				collectStats(config, args[1]);
+			}
+		} catch (Exception e) {
+			usage(e.getMessage());
 			System.exit(1);
 		}
 
@@ -63,15 +72,7 @@ public class Main {
 	/**
 	 * @param config
 	 */
-	private static void setup(String configFilePath) {
-
-		log.info(step() + "Retrieving system configurations.");
-		try {
-			config.parseFile(configFilePath);
-		} catch (Exception e) {
-			usage(e.getMessage());
-			System.exit(1);
-		}
+	private static void setup(IConfiguration config) {
 
 		if (config.getNumServers() < 2) {
 			usage("Number of servers must exceed 1.");
@@ -90,7 +91,7 @@ public class Main {
 	/**
 	 * 
 	 */
-	private static void execute() {
+	private static void execute(IConfiguration config) {
 		EventGenerator eGen = new EventGenerator(config);
 		simulator = new Simulator(eGen, servers);
 
@@ -102,7 +103,7 @@ public class Main {
 	/**
 	 * 
 	 */
-	private static void collectStats(String outputFilePath) {
+	private static void collectStats(IConfiguration config, String outputFilePath) {
 
 		StatisticsCollector sc = StatisticsCollector.getGlobalCollector();
 
