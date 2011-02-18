@@ -10,9 +10,12 @@
 package engine;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import misc.CsvLabel;
+import misc.CsvWriter;
 import misc.XmlPrinter;
 
 import org.xml.sax.SAXException;
@@ -20,7 +23,6 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import config.IConfiguration;
 import config.QueuePolicy;
-
 import engine.Server.Priority;
 
 /**
@@ -29,21 +31,9 @@ import engine.Server.Priority;
  */
 public class StatisticsCollector {
 
-	/**
-	 * 
-	 */
 	private static final String AVERAGE_WAITING_TIME_TAG = "AverageWaitingTime";
-	/**
-	 * 
-	 */
 	private static final String STATISTICAL_MARGIN_TAG = "StatisticalMargin";
-	/**
-	 * 
-	 */
 	private static final String JOBS_MEAN_LENGTH_TAG = "JobsMeanLength";
-	/**
-	 * 
-	 */
 	private static final String TERMINATION_STATISTIC_TAG = "TerminationStatistic";
 	private static final String QUEUE_SETUP_TAG = "QueueSetup";
 	private static final String LOAD_TAG = "Load";
@@ -58,7 +48,7 @@ public class StatisticsCollector {
 	private static final String SUMMARY_TAG = "Summary";
 	private static final String SIMULATION_TAG = "Simulation";
 	
-	private static final int PERCISION = 8;
+	public static final int PERCISION = 8;
 	
 	private static int serversCount = 0;
 
@@ -80,10 +70,13 @@ public class StatisticsCollector {
 	private HashMap<Long, Double> lengthTimeLPQueue = new HashMap<Long, Double>(); 
 	private double lastLQUpdateTime = 0;
 	private long lastUpdateLQLen = 0;
+	private static long currentExperimentIndex = 1;
 	
 	private static double totalHPJobsTimeInSystem = 0.0;
 	private static double totalLPJobsTimeInSystem = 0.0;
 
+	private static CsvWriter writer;
+	
 	public StatisticsCollector() {
 	}
 
@@ -126,18 +119,6 @@ public class StatisticsCollector {
 		 */
 		totalHPJobsTimeInSystem += hpJob.getExecutionStartTime() - hpJob.getCreationTime(); 
 		totalLPJobsTimeInSystem += lpJob.getExecutionStartTime() - lpJob.getCreationTime();
-//
-//		
-//		
-//		if (Double.compare(hpJob.getExecutionStartTime(),hpJob.getCreationTime()) < 1 || 
-//				Double.compare(lpJob.getExecutionStartTime(),lpJob.getCreationTime()) < 1) {
-//			System.err.println(
-//					"Job ID: " + hpJob.jobID + "\n" + 
-//					"HP Job start time: " + hpJob.getExecutionStartTime() + "\n" + 
-//					"HP Job creation time: " + hpJob.getCreationTime() + "\n" +
-//					"LP Job start time: " + lpJob.getExecutionStartTime() + "\n" + 
-//					"LP Job creation time: " + lpJob.getCreationTime() + "\n");
-//		}
 	}
 
 	/**
@@ -191,17 +172,6 @@ public class StatisticsCollector {
 			break;
 		}
 
-	}
-
-	public void endCollection(double time) {
-
-		/*
-		 * updating local queues lengths
-		 */
-//		updateQueueLength(Priority.HIGH, lastUpdateHQLen, time,true);
-//		updateQueueLength(Priority.LOW, lastUpdateLQLen, time,true);
-
-		updateGlobalCollector();
 	}
 
 	public void updateGlobalCollector() {
@@ -340,7 +310,7 @@ public class StatisticsCollector {
 					
 					xmlPrinter.startElement("", "", AVERAGE_WAITING_TIME_TAG, defaultAtts);
 					{
-						char[] awt = String.format("%." + PERCISION + "f", AverageWaitingTime(totalHPJobsTimeInSystem,config)).
+						char[] awt = String.format("%." + PERCISION + "f", getAverageHPJobsWaitingTime(config)).
 						toCharArray();
 						xmlPrinter.characters(awt, 0, awt.length);
 					}
@@ -367,7 +337,7 @@ public class StatisticsCollector {
 					
 					xmlPrinter.startElement("", "", AVERAGE_WAITING_TIME_TAG, defaultAtts);
 					{
-						char[] awt = String.format("%." + PERCISION + "f", AverageWaitingTime(totalLPJobsTimeInSystem,config)).
+						char[] awt = String.format("%." + PERCISION + "f", getAverageLPJobsWaitingTime(config)).
 						toCharArray();
 						xmlPrinter.characters(awt, 0, awt.length);
 					}
@@ -387,12 +357,20 @@ public class StatisticsCollector {
 					
 	}
 
+	public double getAverageLPJobsWaitingTime(IConfiguration config) {
+		return averageWaitingTime(totalLPJobsTimeInSystem,config);
+	}
+
+	public double getAverageHPJobsWaitingTime(IConfiguration config) {
+		return averageWaitingTime(totalHPJobsTimeInSystem,config);
+	}
+	
 	/**
 	 * @param totalJobsTimeInSystem
 	 * @param config
 	 * @return
 	 */
-	private double AverageWaitingTime(double totalJobsTimeInSystem,
+	private double averageWaitingTime(double totalJobsTimeInSystem,
 			IConfiguration config) {
 		long numJobs = (long)(config.getNumJobs() * (1 - 2*config.getStatisticalMargin()));
 		return totalJobsTimeInSystem / numJobs;
@@ -401,7 +379,7 @@ public class StatisticsCollector {
 	/**
 	 * @return the hQMaxLength
 	 */
-	private static long getHPQueueMaxLength() {
+	public long getHPQueueMaxLength() {
 		long maxLen = 0;
 		for (long len : instance.lengthTimeHPQueue.keySet()) {
 			if (maxLen < len)
@@ -415,7 +393,7 @@ public class StatisticsCollector {
 	 * 
 	 * @return the hQAvgLength
 	 */
-	private static double getHPQueueAvgLength() {
+	public double getHPQueueAvgLength() {
 		double avgLen = 0.0;
 		double totalReportedTime = 0.0;
 		
@@ -433,7 +411,7 @@ public class StatisticsCollector {
 	/**
 	 * @return the lQMaxLength
 	 */
-	private static long getLPQueueMaxLength() {
+	public long getLPQueueMaxLength() {
 		long maxLen = 0;
 		for (long len : instance.lengthTimeLPQueue.keySet()) {
 			if (maxLen < len)
@@ -445,7 +423,7 @@ public class StatisticsCollector {
 	/**
 	 * @return the lQAvgLength
 	 */
-	private static double getLPQueueAvgLength() {
+	public double getLPQueueAvgLength() {
 		double avgLen = 0;
 		double totalReportedTime = 0.0;
 		
@@ -464,6 +442,7 @@ public class StatisticsCollector {
 	 * prepares the final statistics of the simulation
 	 */
 	public void finalizeStats() {
+		currentExperimentIndex++;
 		long completedJobsCount = 0;
 		for (long completionCount : stats.values()) {
 			completedJobsCount += completionCount;
@@ -472,5 +451,53 @@ public class StatisticsCollector {
 		for (JobCompletionState jcs : stats.keySet()) {
 			statsPerc.put(jcs, (stats.get(jcs) / (double)completedJobsCount));
 		}
+	}
+
+	/**
+	 * @param outputFile
+	 * @param config
+	 * @throws IOException 
+	 */
+	public void exportCSV(File outputFile, IConfiguration config) throws IOException {
+		if (writer == null) {
+			throw new RuntimeException("CSV writer not initialized");
+		}
+		Map<String,String> data = new HashMap<String, String>(CsvLabel.values().length + 5);
+		for (CsvLabel label : CsvLabel.values()) {
+			label.injectData(data,this,config);
+		}
+		
+		injectJobCompletionData(data,JobState.DROPPED_ON_FULL_QUEUE,JobState.DROPPED_ON_FULL_QUEUE);
+		injectJobCompletionData(data,JobState.COMPLETED,JobState.DROPPED_ON_SIBLING_COMPLETION);
+		injectJobCompletionData(data,JobState.COMPLETED,JobState.DROPPED_ON_FULL_QUEUE);
+		injectJobCompletionData(data,JobState.DROPPED_ON_FULL_QUEUE,JobState.COMPLETED);
+		injectJobCompletionData(data,JobState.DROPPED_ON_SIBLING_COMPLETION,JobState.COMPLETED);
+		
+		writer.writeData(data);
+	}
+
+	private void injectJobCompletionData(Map<String, String> data, JobState hpJobCompletionState, JobState lpJobCompletionState) {
+		JobCompletionState jcs = new JobCompletionState(hpJobCompletionState, lpJobCompletionState);
+		if (statsPerc.containsKey(jcs)) {
+			data.put(main.Main.hplpLabel(hpJobCompletionState,lpJobCompletionState), 
+					String.format("%." + PERCISION + "f",statsPerc.get(new JobCompletionState(hpJobCompletionState,lpJobCompletionState))));
+			return;
+		}
+		data.put(main.Main.hplpLabel(hpJobCompletionState,lpJobCompletionState), "0");
+	}
+
+	public static long getCurrentExperimentIndex() {
+		return currentExperimentIndex;
+	}
+
+	/**
+	 * @param writer2
+	 */
+	public static void setWriter(CsvWriter _writer) {
+		writer = _writer;
+	}
+
+	public static void close() throws IOException {
+		writer.close();
 	}
 }
