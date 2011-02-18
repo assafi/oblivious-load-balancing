@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-	<servers-config>
-		<count>2</count>
-		<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
-	</servers-config>
-	<jobs-config>
-		<load>1</load>
-		<count>100000</count>
-		<meanLength>1.0</meanLength>
-	</jobs-config>
-	<statisticsMargin>0.1</statisticsMargin>
+	<experiment>
+		<servers-config>
+			<count>2</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>1</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>2</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>1</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
 </configuration>
