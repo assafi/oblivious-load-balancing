@@ -70,6 +70,7 @@ public class Main {
 			experimentsConfiguration.parseFile(args[0]);
 			for (IConfiguration config : experimentsConfiguration.getAllExperimentsConfigurations()) {
 				log.info(step() + "Executing experiment #" + StatisticsCollector.getCurrentExperimentIndex());
+				resetStats();
 				setup(config);
 				execute(config);
 				collectStats(config, args[1]);
@@ -83,6 +84,13 @@ public class Main {
 			System.exit(1);
 		}
 
+	}
+
+	/**
+	 * 
+	 */
+	private static void resetStats() {
+		StatisticsCollector.reset();
 	}
 
 	/**

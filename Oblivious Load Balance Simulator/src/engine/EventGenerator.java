@@ -32,6 +32,8 @@ public class EventGenerator {
 	private RandomData intervalRandomizer = new RandomDataImpl();
 	private RandomData lengthRandomizer = new RandomDataImpl();
 	
+	private static final int DOUBLE_PRECISION = 7; 
+	
 
 	/**
 	 * @param config
@@ -99,12 +101,22 @@ public class EventGenerator {
 		}
 		jobsRemained--;
 
-		double interval = intervalRandomizer
-				.nextExponential(averageArrivalRate);
-		double jobLength = lengthRandomizer.nextExponential(jobMeanLength);
+		double interval = roundDouble(intervalRandomizer
+				.nextExponential(averageArrivalRate));
+		double jobLength = roundDouble(lengthRandomizer.
+				nextExponential(jobMeanLength));
 		
 		clock += interval;
 		return new Job(jobLength, clock, ignoredJob(jobsRemained));
+	}
+
+/**
+	 * @param nextExponential
+	 * @return
+	 */
+	private double roundDouble(double doubleNum) {
+		long round = (long) (doubleNum * (Math.pow(10, DOUBLE_PRECISION)));
+		return round / (double)(Math.pow(10, DOUBLE_PRECISION));
 	}
 
 //	/**
