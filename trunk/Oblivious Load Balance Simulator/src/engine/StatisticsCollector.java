@@ -91,7 +91,7 @@ public class StatisticsCollector {
 	 */
 	public void reportTermination(Job job) {
 
-		if (job.getJobLength() == 0 || job.ignore) { 
+		if (Double.compare(job.getJobLength(),0) == 0 || job.ignore) { 
 			return;
 		}
 		
@@ -147,12 +147,14 @@ public class StatisticsCollector {
 		switch (priority) {
 		case HIGH:
 			if (lengthTimeHPQueue.containsKey(lastUpdateHQLen)) {
-				lenTime = lengthTimeHPQueue.remove(lastUpdateHQLen);
+				lenTime = lengthTimeHPQueue.get(lastUpdateHQLen);
 			}
 
 			if (!ignore) {
 				lengthTimeHPQueue.put(lastUpdateHQLen, lenTime
 						+ (localTime - lastHQUpdateTime));
+			} else {
+				
 			}
 			lastHQUpdateTime = localTime;
 			lastUpdateHQLen = length;
@@ -160,7 +162,7 @@ public class StatisticsCollector {
 
 		case LOW:
 			if (lengthTimeLPQueue.containsKey(lastUpdateLQLen)) {
-				lenTime = lengthTimeLPQueue.remove(lastUpdateLQLen);
+				lenTime = lengthTimeLPQueue.get(lastUpdateLQLen);
 			}
 
 			if (!ignore) {
@@ -372,6 +374,9 @@ public class StatisticsCollector {
 	 */
 	private double averageWaitingTime(double totalJobsTimeInSystem,
 			IConfiguration config) {
+		if (totalJobsTimeInSystem < 0) {
+			System.err.println("Total jobs time in system is negative: " + totalJobsTimeInSystem);
+		}
 		long numJobs = (long)(config.getNumJobs() * (1 - 2*config.getStatisticalMargin()));
 		return totalJobsTimeInSystem / numJobs;
 	}
@@ -430,7 +435,6 @@ public class StatisticsCollector {
 		for (double time : instance.lengthTimeLPQueue.values()) {
 			totalReportedTime += time;
 		}
-		
 		for (long len : instance.lengthTimeLPQueue.keySet()) {
 			avgLen += (instance.lengthTimeLPQueue.get(len) / totalReportedTime) * len;
 		}
@@ -491,7 +495,7 @@ public class StatisticsCollector {
 	}
 
 	/**
-	 * @param writer2
+	 * @param writer
 	 */
 	public static void setWriter(CsvWriter _writer) {
 		writer = _writer;
@@ -499,5 +503,21 @@ public class StatisticsCollector {
 
 	public static void close() throws IOException {
 		writer.close();
+	}
+
+	/**
+	 * Prepares the global StatisticsCollector for the next experiment.
+	 */
+	public static void reset() {
+		serversCount = 0;
+		statsPerc.clear();
+		instance.lengthTimeHPQueue = new HashMap<Long, Double>();
+		instance.lastHQUpdateTime = 0;
+		instance.lastUpdateHQLen = 0;
+		instance.lengthTimeLPQueue = new HashMap<Long, Double>(); 
+		instance.lastLQUpdateTime = 0;
+		instance.lastUpdateLQLen = 0;
+		totalHPJobsTimeInSystem = 0.0;
+		totalLPJobsTimeInSystem = 0.0;
 	}
 }

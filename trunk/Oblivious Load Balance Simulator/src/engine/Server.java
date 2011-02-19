@@ -237,8 +237,7 @@ public class Server {
 			 * between the HP job creation time and the local time.
 			 */
 		{
-			currentJob = hpQueue.dequeue();
-			currentJob.setState(JobState.RUNNING);
+			currentJob = hpQueue.peek();
 			
 			/*
 			 * this is a HP job, so it's starting time is always its creation time
@@ -252,6 +251,7 @@ public class Server {
 			currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
 			if((currentJob == null) || (currentJob.getState() == JobState.DROPPED_ON_SIBLING_COMPLETION))
 			{
+				currentJob.getMirrorJob().associatedServer.currentTimeChanged(localTime);
 				currentJob = null;
 			}
 			else
@@ -260,6 +260,8 @@ public class Server {
 				currentJob.setExecutionStartTime(localTime);
 				// High priority, hence signaling the LQ before processing
 				currentJob.getMirrorJob().discardJob(localTime);
+				hpQueue.dequeue();
+				currentJob.setState(JobState.RUNNING);
 			}
 		}
 		else if(!lpQueue.isEmpty())
