@@ -101,10 +101,10 @@ public class EventGenerator {
 		}
 		jobsRemained--;
 
-		double interval = roundDouble(intervalRandomizer
-				.nextExponential(averageArrivalRate));
-		double jobLength = roundDouble(lengthRandomizer.
-				nextExponential(jobMeanLength));
+		double interval = intervalRandomizer
+				.nextExponential(averageArrivalRate);
+		double jobLength = lengthRandomizer.
+				nextExponential(jobMeanLength);
 		
 		clock += interval;
 		return new Job(jobLength, clock, ignoredJob(jobsRemained));
@@ -114,6 +114,7 @@ public class EventGenerator {
 	 * @param nextExponential
 	 * @return
 	 */
+	@SuppressWarnings("unused")
 	private double roundDouble(double doubleNum) {
 		long round = (long) (doubleNum * (Math.pow(10, DOUBLE_PRECISION)));
 		return round / (double)(Math.pow(10, DOUBLE_PRECISION));
