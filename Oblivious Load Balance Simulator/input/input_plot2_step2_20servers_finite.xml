@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0.1">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0.3">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0.5">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0.6">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="0.8">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="finite" dFactor="1">6</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+</configuration>

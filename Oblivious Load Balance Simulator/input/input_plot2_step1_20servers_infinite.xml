@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.1</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.2</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+	<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.3</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>	
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.4</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.5</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.6</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.7</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.8</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>0.9</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+		<experiment>
+		<servers-config>
+			<count>20</count>
+			<queue-policy policy="infinite" dFactor="1">1000</queue-policy>
+		</servers-config>
+		<jobs-config>
+			<load>1</load>
+			<count>100000</count>
+			<meanLength>1.0</meanLength>
+		</jobs-config>
+		<statisticsMargin>0.1</statisticsMargin>
+	</experiment>
+</configuration>
