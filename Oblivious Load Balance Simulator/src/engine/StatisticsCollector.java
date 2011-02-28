@@ -75,6 +75,10 @@ public class StatisticsCollector {
 	private static double totalHPJobsTimeInSystem = 0.0;
 	private static double totalLPJobsTimeInSystem = 0.0;
 
+	private static double totalHPTimeUntilCompletion = 0.0;
+	private static double totalLPTimeUntilCompletion = 0.0;
+	private static double totalTimeUntilCompletion = 0.0;
+	
 	private static CsvWriter writer;
 	
 	public StatisticsCollector() {
@@ -98,14 +102,18 @@ public class StatisticsCollector {
 		Job siblingJob = job.getMirrorJob();
 		switch (job.associatedQueue.getQueuePriority()) {
 		case HIGH:
-			recordTerminationCause(job.getState(), siblingJob.getState());
-			recordTimeInSystem(job,siblingJob);
+			recordTerminationStats(job, siblingJob);
 			break;
 		case LOW:
-			recordTerminationCause(siblingJob.getState(), job.getState());
-			recordTimeInSystem(siblingJob,job);
+			recordTerminationStats(siblingJob, job);
 			break;
 		}
+	}
+
+	private void recordTerminationStats(Job hpJob, Job lpJob) {
+		recordTerminationCause(hpJob.getState(), lpJob.getState());
+		recordTimeInSystem(hpJob,lpJob);
+		recordTimeToCompletion(hpJob,lpJob);
 	}
 
 	/**
@@ -119,6 +127,16 @@ public class StatisticsCollector {
 		 */
 		totalHPJobsTimeInSystem += hpJob.getExecutionStartTime() - hpJob.getCreationTime(); 
 		totalLPJobsTimeInSystem += lpJob.getExecutionStartTime() - lpJob.getCreationTime();
+	}
+
+	private void recordTimeToCompletion(Job hpJob, Job lpJob) {
+		if (hpJob.getState() == JobState.COMPLETED) {
+			totalHPTimeUntilCompletion += hpJob.getExecutionStartTime() - hpJob.getCreationTime();
+			totalTimeUntilCompletion += hpJob.getExecutionEndTime() - hpJob.getCreationTime();
+		} else if (lpJob.getState() == JobState.COMPLETED){
+			totalLPTimeUntilCompletion += lpJob.getExecutionStartTime() - lpJob.getCreationTime();
+			totalTimeUntilCompletion += lpJob.getExecutionEndTime() - lpJob.getCreationTime();
+		}
 	}
 
 	/**
@@ -360,25 +378,71 @@ public class StatisticsCollector {
 	}
 
 	public double getAverageLPJobsWaitingTime(IConfiguration config) {
-		return averageWaitingTime(totalLPJobsTimeInSystem,config);
+		return averageTimeToCompletion(totalLPJobsTimeInSystem,config,Priority.HIGH);
 	}
 
 	public double getAverageHPJobsWaitingTime(IConfiguration config) {
-		return averageWaitingTime(totalHPJobsTimeInSystem,config);
+		return averageTimeToCompletion(totalHPJobsTimeInSystem,config,Priority.LOW);
 	}
 	
+	public double getAverageTimeToCompletion(IConfiguration config) {
+		return averageTimeToCompletion(totalTimeUntilCompletion,config,null);
+	}
+	
+	public double getAverageHPTimeToCompletion(IConfiguration config) {
+		return averageTimeToCompletion(totalHPTimeUntilCompletion,config,Priority.HIGH);
+	}
+	
+	public double getAverageLPTimeToCompletion(IConfiguration config) {
+		return averageTimeToCompletion(totalLPTimeUntilCompletion,config,Priority.LOW);
+	}
+	
+	
 	/**
-	 * @param totalJobsTimeInSystem
+	 * @param totalTime
 	 * @param config
 	 * @return
 	 */
-	private double averageWaitingTime(double totalJobsTimeInSystem,
-			IConfiguration config) {
-		if (totalJobsTimeInSystem < 0) {
-			System.err.println("Total jobs time in system is negative: " + totalJobsTimeInSystem);
+	private double averageTimeToCompletion(double totalTime,
+			IConfiguration config, Priority p) {
+		if (totalTime < 0) {
+			System.err.println("Total jobs time in system is negative: " + totalTime);
 		}
-		long numJobs = (long)(config.getNumJobs() * (1 - 2*config.getStatisticalMargin()));
-		return totalJobsTimeInSystem / numJobs;
+		return totalTime / numCompletedJobs(p);
+	}
+
+	/**
+	 * Number of completed jobs in regards to a given priority.
+	 * if p is null will return the total of all priorities.
+	 * @return
+	 */
+	private long numCompletedJobs(Priority p) {
+		long $ = 0;
+		for (JobCompletionState jcs : stats.keySet()) {
+			if (p == null) {
+				/* 
+				 * null == both
+				 */
+				if (jcs.HPJobCompletionState == JobState.COMPLETED || 
+					jcs.LPJobCompletionState == JobState.COMPLETED) 
+					$ += stats.get(jcs);
+				continue;
+			}
+			switch (p) {
+			case HIGH:
+				if (jcs.HPJobCompletionState == JobState.COMPLETED) 
+					$ += stats.get(jcs);
+				break;
+
+			case LOW:
+				if (jcs.LPJobCompletionState == JobState.COMPLETED) 
+					$ += stats.get(jcs);
+				break;
+			default:
+				break;
+			}
+		}
+		return $;
 	}
 
 	/**
@@ -400,14 +464,14 @@ public class StatisticsCollector {
 	 */
 	public double getHPQueueAvgLength() {
 		double avgLen = 0.0;
-		double totalReportedTime = 0.0;
+		double totalCompletionReportedTime = 0.0;
 		
 		for (double time : instance.lengthTimeHPQueue.values()) {
-			totalReportedTime += time;
+			totalCompletionReportedTime += time;
 		}
 		
 		for (long len : instance.lengthTimeHPQueue.keySet()) {
-			avgLen += (instance.lengthTimeHPQueue.get(len) / totalReportedTime) * len;
+			avgLen += (instance.lengthTimeHPQueue.get(len) / totalCompletionReportedTime) * len;
 		}
 
 		return avgLen;
@@ -519,5 +583,8 @@ public class StatisticsCollector {
 		instance.lastUpdateLQLen = 0;
 		totalHPJobsTimeInSystem = 0.0;
 		totalLPJobsTimeInSystem = 0.0;
+		totalTimeUntilCompletion = 0.0;
+		totalLPTimeUntilCompletion = 0.0;
+		totalHPTimeUntilCompletion = 0.0;
 	}
 }

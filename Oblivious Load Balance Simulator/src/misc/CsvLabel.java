@@ -17,7 +17,7 @@ import engine.StatisticsCollector;
 
 /**
  * @author Assaf Israel
- *
+ * 
  */
 public enum CsvLabel {
 
@@ -30,7 +30,8 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), Long.toString(StatisticsCollector.getCurrentExperimentIndex()));
+			data.put(simpleName(), Long.toString(StatisticsCollector
+					.getCurrentExperimentIndex()));
 		}
 	},
 	SERVERS {
@@ -54,7 +55,7 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), Long.toString(config.getNumJobs()));			
+			data.put(simpleName(), Long.toString(config.getNumJobs()));
 		}
 	},
 	LENGTH {
@@ -66,7 +67,9 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", config.getJobMeanLength()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					config.getJobMeanLength()));
 		}
 	},
 	MARGIN {
@@ -78,7 +81,9 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", config.getStatisticalMargin()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					config.getStatisticalMargin()));
 		}
 	},
 	POLICY {
@@ -114,7 +119,9 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", config.getDistributionFactor()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					config.getDistributionFactor()));
 		}
 	},
 	LOAD {
@@ -126,7 +133,8 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", config.getLoad()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f", config.getLoad()));
 		}
 	},
 	LP_QUEUE_MAX_LENGTH {
@@ -138,7 +146,8 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), Long.toString(statisticsCollector.getLPQueueMaxLength()));
+			data.put(simpleName(),
+					Long.toString(statisticsCollector.getLPQueueMaxLength()));
 		}
 	},
 	LP_QUEUE_AVERAGE_LENGTH {
@@ -150,7 +159,9 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", statisticsCollector.getLPQueueAvgLength()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getLPQueueAvgLength()));
 		}
 	},
 	LP_JOBS_AVERAGE_TIME_IN_SYSTEM {
@@ -162,7 +173,23 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", statisticsCollector.getAverageLPJobsWaitingTime(config)));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getAverageLPJobsWaitingTime(config)));
+		}
+	},
+	AVERAGE_LP_TIME_TO_COMPLETION {
+		@Override
+		public String simpleName() {
+			return "Average LP job time to completion";
+		}
+
+		@Override
+		public void injectData(Map<String, String> data,
+				StatisticsCollector statisticsCollector, IConfiguration config) {
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getAverageLPTimeToCompletion(config)));
 		}
 	},
 	HP_QUEUE_MAX_LENGTH {
@@ -174,7 +201,8 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), Long.toString(statisticsCollector.getHPQueueMaxLength()));
+			data.put(simpleName(),
+					Long.toString(statisticsCollector.getHPQueueMaxLength()));
 		}
 	},
 	HP_QUEUE_AVERAGE_LENGTH {
@@ -186,7 +214,9 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", statisticsCollector.getHPQueueAvgLength()));
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getHPQueueAvgLength()));
 		}
 	},
 	HP_JOBS_AVERAGE_TIME_IN_SYSTEM {
@@ -198,16 +228,49 @@ public enum CsvLabel {
 		@Override
 		public void injectData(Map<String, String> data,
 				StatisticsCollector statisticsCollector, IConfiguration config) {
-			data.put(simpleName(), String.format("%." + StatisticsCollector.PERCISION + "f", statisticsCollector.getAverageHPJobsWaitingTime(config)));			
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getAverageHPJobsWaitingTime(config)));
+		}
+	},
+	AVERAGE_HP_TIME_TO_COMPLETION {
+		@Override
+		public String simpleName() {
+			return "Average HP job time to completion";
+		}
+
+		@Override
+		public void injectData(Map<String, String> data,
+				StatisticsCollector statisticsCollector, IConfiguration config) {
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getAverageHPTimeToCompletion(config)));
+		}
+	},
+	AVERAGE_TIME_TO_COMPLETION {
+		@Override
+		public String simpleName() {
+			return "Average time to completion";
+		}
+
+		@Override
+		public void injectData(Map<String, String> data,
+				StatisticsCollector statisticsCollector, IConfiguration config) {
+			data.put(simpleName(), String.format("%."
+					+ StatisticsCollector.PERCISION + "f",
+					statisticsCollector.getAverageTimeToCompletion(config)));
 		}
 	},
 	;
 	public abstract String simpleName();
 
 	/**
-	 * @param data Data map to inject data
-	 * @param statisticsCollector Data will be extracted from here according to the label
-	 * @param config Data will be extracted from here according to the label
+	 * @param data
+	 *            Data map to inject data
+	 * @param statisticsCollector
+	 *            Data will be extracted from here according to the label
+	 * @param config
+	 *            Data will be extracted from here according to the label
 	 */
 	public abstract void injectData(Map<String, String> data,
 			StatisticsCollector statisticsCollector, IConfiguration config);
