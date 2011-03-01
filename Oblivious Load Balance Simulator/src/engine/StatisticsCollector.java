@@ -131,10 +131,11 @@ public class StatisticsCollector {
 
 	private void recordTimeToCompletion(Job hpJob, Job lpJob) {
 		if (hpJob.getState() == JobState.COMPLETED) {
-			totalHPTimeUntilCompletion += hpJob.getExecutionStartTime() - hpJob.getCreationTime();
+			totalHPTimeUntilCompletion += hpJob.getExecutionEndTime() - hpJob.getCreationTime();
 			totalTimeUntilCompletion += hpJob.getExecutionEndTime() - hpJob.getCreationTime();
-		} else if (lpJob.getState() == JobState.COMPLETED){
-			totalLPTimeUntilCompletion += lpJob.getExecutionStartTime() - lpJob.getCreationTime();
+		} 
+		if (lpJob.getState() == JobState.COMPLETED){
+			totalLPTimeUntilCompletion += lpJob.getExecutionEndTime() - lpJob.getCreationTime();
 			totalTimeUntilCompletion += lpJob.getExecutionEndTime() - lpJob.getCreationTime();
 		}
 	}
@@ -378,11 +379,11 @@ public class StatisticsCollector {
 	}
 
 	public double getAverageLPJobsWaitingTime(IConfiguration config) {
-		return averageTimeToCompletion(totalLPJobsTimeInSystem,config,Priority.HIGH);
+		return averageWaitingTime(totalLPJobsTimeInSystem,config,Priority.LOW);
 	}
 
 	public double getAverageHPJobsWaitingTime(IConfiguration config) {
-		return averageTimeToCompletion(totalHPJobsTimeInSystem,config,Priority.LOW);
+		return averageWaitingTime(totalHPJobsTimeInSystem,config,Priority.HIGH);
 	}
 	
 	public double getAverageTimeToCompletion(IConfiguration config) {
@@ -397,6 +398,10 @@ public class StatisticsCollector {
 		return averageTimeToCompletion(totalLPTimeUntilCompletion,config,Priority.LOW);
 	}
 	
+	private double averageWaitingTime(double totalTime,
+			IConfiguration config, Priority p) {
+		return totalTime / numFinishedJobs(p);
+	}
 	
 	/**
 	 * @param totalTime
@@ -412,8 +417,44 @@ public class StatisticsCollector {
 	}
 
 	/**
+	 * Number of finished jobs in regards to a given priority. 
+	 * Including all completion states (besides dropped-on-full-queue).
+	 * @param p
+	 * @return
+	 */
+	private double numFinishedJobs(Priority p) {
+		long $ = 0;
+		for (JobCompletionState jcs : stats.keySet()) {
+			if (p == null) {
+				/* 
+				 * null == both
+				 */
+				if ((jcs.HPJobCompletionState.isCompletionState() && !jcs.HPJobCompletionState.equals(JobState.DROPPED_ON_FULL_QUEUE))|| 
+					(jcs.LPJobCompletionState.isCompletionState() && !jcs.LPJobCompletionState.equals(JobState.DROPPED_ON_FULL_QUEUE))) 
+					$ += stats.get(jcs);
+				continue;
+			}
+			switch (p) {
+			case HIGH:
+				if (jcs.HPJobCompletionState.isCompletionState() && !jcs.HPJobCompletionState.equals(JobState.DROPPED_ON_FULL_QUEUE))
+					$ += stats.get(jcs);
+				break;
+
+			case LOW:
+				if (jcs.LPJobCompletionState.isCompletionState() && !jcs.LPJobCompletionState.equals(JobState.DROPPED_ON_FULL_QUEUE)) 
+					$ += stats.get(jcs);
+				break;
+			default:
+				break;
+			}
+		}
+		return $;
+	}
+	
+	/**
 	 * Number of completed jobs in regards to a given priority.
 	 * if p is null will return the total of all priorities.
+	 * @param p
 	 * @return
 	 */
 	private long numCompletedJobs(Priority p) {
