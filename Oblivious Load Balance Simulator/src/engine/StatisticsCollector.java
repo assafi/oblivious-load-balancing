@@ -616,6 +616,7 @@ public class StatisticsCollector {
 	public static void reset() {
 		serversCount = 0;
 		statsPerc.clear();
+		instance.stats.clear();
 		instance.lengthTimeHPQueue = new HashMap<Long, Double>();
 		instance.lastHQUpdateTime = 0;
 		instance.lastUpdateHQLen = 0;
